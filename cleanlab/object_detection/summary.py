@@ -141,7 +141,7 @@ def visualize(
         bbox_extra_artists = (legend,)
 
     if save_path:
-        allowed_image_formats = set(["png", "pdf", "ps", "eps", "svg"])
+        allowed_image_formats = {"png", "pdf", "ps", "eps", "svg"}
         image_format: Optional[str] = None
         if save_path.split(".")[-1] in allowed_image_formats and "." in save_path:
             image_format = save_path.split(".")[-1]
@@ -157,18 +157,21 @@ def visualize(
 
 
 def _plot_legend(class_names, label, prediction):
-    colors = ["black"]
-    colors.extend(["red"] if label is not None else [])
-    colors.extend(["blue"] if prediction is not None else [])
-
-    markers = [None]
-    markers.extend(["s"] if label is not None else [])
-    markers.extend(["s"] if prediction is not None else [])
-
-    labels = [r"$\bf{Legend}$"]
-    labels.extend(["given label"] if label is not None else [])
-    labels.extend(["predicted label"] if prediction is not None else [])
-
+    colors = [
+        "black",
+        *(["red"] if label is not None else []),
+        *(["blue"] if prediction is not None else []),
+    ]
+    markers = [
+        None,
+        *(["s"] if label is not None else []),
+        *(["s"] if prediction is not None else []),
+    ]
+    labels = [
+        "$\bf{Legend}$",
+        *(["given label"] if label is not None else []),
+        *(["predicted label"] if prediction is not None else []),
+    ]
     if class_names:
         colors += ["black"] + ["black"] * min(len(class_names), MAX_CLASS_TO_SHOW)
         markers += [None] + [f"${class_key}$" for class_key in class_names.keys()]
@@ -198,11 +201,7 @@ def _draw_labels(ax, rect, label, edgecolor):
     c_xright = rx + rect.get_width() - 10
     c_ytop = ry + 12
 
-    if edgecolor == "r":
-        cx, cy = c_xleft, c_ytop
-    else:  # edgecolor == b
-        cx, cy = c_xright, c_ytop
-
+    cx, cy = (c_xleft, c_ytop) if edgecolor == "r" else (c_xright, c_ytop)
     l = ax.annotate(
         label, (cx, cy), fontsize=8, fontweight="bold", color="white", ha="center", va="center"
     )

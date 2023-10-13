@@ -168,8 +168,7 @@ def _compute_label_quality_scores(
         )
 
     scoring_inputs = {"labels": labels, "pred_probs": pred_probs}
-    label_quality_scores = scoring_func(**scoring_inputs)
-    return label_quality_scores
+    return scoring_func(**scoring_inputs)
 
 
 def get_label_quality_ensemble_scores(
@@ -250,7 +249,7 @@ def get_label_quality_ensemble_scores(
         pred_probs_list, list
     ), f"pred_probs_list needs to be a list. Provided pred_probs_list is a {type(pred_probs_list)}"
 
-    assert len(pred_probs_list) > 0, "pred_probs_list is empty."
+    assert pred_probs_list, "pred_probs_list is empty."
 
     if len(pred_probs_list) == 1:
         warnings.warn(
@@ -266,7 +265,7 @@ def get_label_quality_ensemble_scores(
     # Raise ValueError if user passed custom_weights array but did not choose weight_ensemble_members_by="custom"
     if custom_weights is not None and weight_ensemble_members_by != "custom":
         raise ValueError(
-            f"""
+            """
             custom_weights provided but weight_ensemble_members_by is not "custom"!
             """
         )
@@ -296,7 +295,8 @@ def get_label_quality_ensemble_scores(
 
             # weighted average using negative log loss
             pred_probs_avg_log_loss_weighted_temp = sum(
-                [neg_log_loss_weights_temp[i] * p for i, p in enumerate(pred_probs_list)]
+                neg_log_loss_weights_temp[i] * p
+                for i, p in enumerate(pred_probs_list)
             )
             # evaluate log loss with this weighted average pred_probs
             eval_log_loss = log_loss(labels, pred_probs_avg_log_loss_weighted_temp)
@@ -332,29 +332,13 @@ def get_label_quality_ensemble_scores(
     scores_ensemble = np.vstack(scores_list).T
 
     # Aggregate scores with chosen weighting scheme
-    if weight_ensemble_members_by == "uniform":
-        label_quality_scores = scores_ensemble.mean(axis=1)  # Uniform weights (simple average)
-
-    elif weight_ensemble_members_by == "accuracy":
+    if weight_ensemble_members_by == "accuracy":
         weights = np.array(accuracy_list) / sum(accuracy_list)  # Weight by relative accuracy
         if verbose:
             print("Ensemble members will be weighted by their relative accuracy")
             for i, acc in enumerate(accuracy_list):
                 print(f"  Model {i} accuracy : {acc}")
                 print(f"  Model {i} weight   : {weights[i]}")
-
-        # Aggregate scores with weighted average
-        label_quality_scores = (scores_ensemble * weights).sum(axis=1)
-
-    elif weight_ensemble_members_by == "log_loss_search":
-        assert neg_log_loss_weights is not None
-        weights = neg_log_loss_weights  # Weight by exp(t * -log_loss) where t is found by searching through log_loss_search_T_values
-        if verbose:
-            print(
-                "Ensemble members will be weighted by log-loss between their predicted probabilities and given labels"
-            )
-            for i, weight in enumerate(weights):
-                print(f"  Model {i} weight   : {weight}")
 
         # Aggregate scores with weighted average
         label_quality_scores = (scores_ensemble * weights).sum(axis=1)
@@ -371,6 +355,22 @@ def get_label_quality_ensemble_scores(
 
         # Aggregate scores with custom weights
         label_quality_scores = (scores_ensemble * custom_weights).sum(axis=1)
+
+    elif weight_ensemble_members_by == "log_loss_search":
+        assert neg_log_loss_weights is not None
+        weights = neg_log_loss_weights  # Weight by exp(t * -log_loss) where t is found by searching through log_loss_search_T_values
+        if verbose:
+            print(
+                "Ensemble members will be weighted by log-loss between their predicted probabilities and given labels"
+            )
+            for i, weight in enumerate(weights):
+                print(f"  Model {i} weight   : {weight}")
+
+        # Aggregate scores with weighted average
+        label_quality_scores = (scores_ensemble * weights).sum(axis=1)
+
+    elif weight_ensemble_members_by == "uniform":
+        label_quality_scores = scores_ensemble.mean(axis=1)  # Uniform weights (simple average)
 
     else:
         raise ValueError(
@@ -408,8 +408,7 @@ def find_top_issues(quality_scores: np.ndarray, *, top: int = 10) -> np.ndarray:
     if top is None or top > len(quality_scores):
         top = len(quality_scores)
 
-    top_outlier_indices = quality_scores.argsort()[:top]
-    return top_outlier_indices
+    return quality_scores.argsort()[:top]
 
 
 def order_label_issues(
@@ -556,8 +555,7 @@ def get_normalized_margin_for_each_label(
     max_prob_not_label = np.max(
         np.delete(pred_probs, del_indices, axis=None).reshape(N, K - 1), axis=-1
     )
-    label_quality_scores = (self_confidence - max_prob_not_label + 1) / 2
-    return label_quality_scores
+    return (self_confidence - max_prob_not_label + 1) / 2
 
 
 def get_confidence_weighted_entropy_for_each_label(

@@ -42,8 +42,8 @@ def make_data(
         unlabeled_data.append(
             np.random.multivariate_normal(mean=means[idx], cov=covs[idx], size=unlabeled_sizes[idx])
         )
-        labels.append(np.array([idx for i in range(labeled_sizes[idx])]))
-        unlabeled_labels.append(np.array([idx for i in range(unlabeled_sizes[idx])]))
+        labels.append(np.array([idx for _ in range(labeled_sizes[idx])]))
+        unlabeled_labels.append(np.array([idx for _ in range(unlabeled_sizes[idx])]))
     X_train = np.vstack(local_data)
     X_train_unlabeled = np.vstack(unlabeled_data)
     true_labels_train = np.hstack(labels)
@@ -559,7 +559,7 @@ def test_single_label_active_learning():
     assert len(labels) == 15
 
     # test 5 rounds of active learning
-    for i in range(5):
+    for _ in range(5):
         active_learning_scores, active_learning_scores_unlabeled = get_active_learning_scores(
             labels, pred_probs, pred_probs_unlabeled
         )
@@ -592,7 +592,7 @@ def test_single_label_active_learning_ensemble():
     assert len(labels) == 15
 
     # test 5 rounds of active learning
-    for i in range(5):
+    for _ in range(5):
         (
             active_learning_scores,
             active_learning_scores_unlabeled,

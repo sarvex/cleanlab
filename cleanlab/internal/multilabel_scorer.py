@@ -619,8 +619,7 @@ def _get_split_generator(labels, cv):
     unique_labels = np.unique(labels, axis=0)
     label_to_index = {tuple(label): i for i, label in enumerate(unique_labels)}
     multilabel_ids = np.array([label_to_index[tuple(label)] for label in labels])
-    split_generator = cv.split(X=multilabel_ids, y=multilabel_ids)
-    return split_generator
+    return cv.split(X=multilabel_ids, y=multilabel_ids)
 
 
 def get_cross_validated_multilabel_pred_probs(X, labels: np.ndarray, *, clf, cv) -> np.ndarray:
@@ -671,5 +670,6 @@ def get_cross_validated_multilabel_pred_probs(X, labels: np.ndarray, *, clf, cv)
     >>> get_cross_validated_multilabel_pred_probs(X, labels, clf=clf, cv=cv)
     """
     split_generator = _get_split_generator(labels, cv)
-    pred_probs = cross_val_predict(clf, X, labels, cv=split_generator, method="predict_proba")
-    return pred_probs
+    return cross_val_predict(
+        clf, X, labels, cv=split_generator, method="predict_proba"
+    )

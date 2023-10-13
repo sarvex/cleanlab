@@ -57,8 +57,9 @@ class TestNonIIDIssueManager:
     @pytest.fixture
     def embeddings(self, lab):
         np.random.seed(SEED)
-        embeddings_array = np.arange(lab.get_info("statistics")["num_examples"] * 10).reshape(-1, 1)
-        return embeddings_array
+        return np.arange(lab.get_info("statistics")["num_examples"] * 10).reshape(
+            -1, 1
+        )
 
     @pytest.fixture
     def issue_manager(self, lab):

@@ -115,7 +115,7 @@ def test_pyx():
     )
     ps, py, inv = get_latent_py_ps_inv()
     pyx = latent_algebra.compute_pyx(pred_probs, nm, inv)
-    assert np.all(np.sum(pyx, axis=1) - 1 < 1e-4)
+    assert np.all(np.sum(pyx, axis=1) < 1.0001)
 
 
 def test_pyx_error():

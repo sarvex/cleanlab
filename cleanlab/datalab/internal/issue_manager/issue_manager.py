@@ -46,25 +46,21 @@ class IssueManagerMeta(ABCMeta):
         3: [],
     }
 
-    def __new__(
-        meta: Type[TM],
-        name: str,
-        bases: Tuple[Type[Any], ...],
-        class_dict: Dict[str, Any],
-    ) -> TM:  # Classes that inherit from ABC don't need to be modified
+    def __new__(cls, name: str, bases: Tuple[Type[Any], ...], class_dict: Dict[str, Any]) -> TM:  # Classes that inherit from ABC don't need to be modified
         if ABC in bases:
-            return super().__new__(meta, name, bases, class_dict)
+            return super().__new__(cls, name, bases, class_dict)
 
         # Ensure that the verbosity levels don't have keys other than those in ["issue", "info"]
-        verbosity_levels = class_dict.get("verbosity_levels", meta.verbosity_levels)
+        verbosity_levels = class_dict.get("verbosity_levels", cls.verbosity_levels)
         for level, level_list in verbosity_levels.items():
             if not isinstance(level_list, list):
                 raise ValueError(
                     f"Verbosity levels must be lists. "
                     f"Got {level_list} in {name}.verbosity_levels"
                 )
-            prohibited_keys = [key for key in level_list if not isinstance(key, str)]
-            if prohibited_keys:
+            if prohibited_keys := [
+                key for key in level_list if not isinstance(key, str)
+            ]:
                 raise ValueError(
                     f"Verbosity levels must be lists of strings. "
                     f"Got {prohibited_keys} in {name}.verbosity_levels[{level}]"
@@ -76,7 +72,7 @@ class IssueManagerMeta(ABCMeta):
 
         # Add issue_score_key to class
         class_dict["issue_score_key"] = f"{class_dict['issue_name']}_score"
-        return super().__new__(meta, name, bases, class_dict)
+        return super().__new__(cls, name, bases, class_dict)
 
 
 class IssueManager(ABC, metaclass=IssueManagerMeta):
@@ -148,8 +144,7 @@ class IssueManager(ABC, metaclass=IssueManagerMeta):
         self.summary: pd.DataFrame = pd.DataFrame()
 
     def __repr__(self):
-        class_name = self.__class__.__name__
-        return class_name
+        return self.__class__.__name__
 
     @classmethod
     def __init_subclass__(cls):
@@ -276,7 +271,7 @@ class IssueManager(ABC, metaclass=IssueManagerMeta):
                 f"Use verbosity={top_level} to print all info."
             )
         if issues.empty:
-            print(f"No issues found")
+            print("No issues found")
 
         topk_ids = issues.sort_values(by=cls.issue_score_key, ascending=True).index[:num_examples]
 
@@ -319,7 +314,7 @@ class IssueManager(ABC, metaclass=IssueManagerMeta):
                 s = s.tolist()
 
             if isinstance(s, list):
-                if all([isinstance(s_, list) for s_ in s]):
+                if all(isinstance(s_, list) for s_ in s):
                     return truncate(np.array(s, dtype=object), max_len=max_len)
                 if len(s) > max_len:
                     s = s[:max_len] + ["..."]

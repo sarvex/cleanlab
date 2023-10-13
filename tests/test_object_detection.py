@@ -73,8 +73,7 @@ def generate_image(arr=None):
     """Generates single image of randomly colored pixels"""
     if arr is None:
         arr = np.random.randint(low=0, high=256, size=(300, 300, 3), dtype=np.uint8)
-    img = Image.fromarray(arr, mode="RGB")
-    return img
+    return Image.fromarray(arr, mode="RGB")
 
 
 @pytest.fixture(scope="session")
@@ -123,32 +122,31 @@ def generate_prediction(annotation, num_classes, image_size, max_boxes, issue):
     prediction = [[] for _ in range(num_classes)]
     if annotation is None and issue is False:
         return
+    if issue is False:
+        for label, bboox in zip(annotation["labels"], annotation["bboxes"]):
+            rand_probability = np.random.randint(low=96, high=100) / 100
+            prediction[label].append(list(bboox) + [rand_probability])
     else:
-        if issue is False:
-            for label, bboox in zip(annotation["labels"], annotation["bboxes"]):
-                rand_probability = np.random.randint(low=96, high=100) / 100
-                prediction[label].append(list(bboox) + [rand_probability])
-        else:
-            num_predictions = np.random.randint(low=1, high=max_boxes + 1)
-            rand_labels = generate_labels(num_classes, num_predictions)
-            for label in rand_labels:
-                rand_bbox = generate_bbox(image_size)
-                rand_probability = np.random.randint(low=96, high=100) / 100
-                prediction[label].append(list(rand_bbox) + [rand_probability])
-        prediction = [
-            np.array(p) if len(p) > 0 else np.empty(shape=[0, 5], dtype=np.float32)
-            for p in prediction
-        ]
+        num_predictions = np.random.randint(low=1, high=max_boxes + 1)
+        rand_labels = generate_labels(num_classes, num_predictions)
+        for label in rand_labels:
+            rand_bbox = generate_bbox(image_size)
+            rand_probability = np.random.randint(low=96, high=100) / 100
+            prediction[label].append(list(rand_bbox) + [rand_probability])
+    prediction = [
+        np.array(p) if len(p) > 0 else np.empty(shape=[0, 5], dtype=np.float32)
+        for p in prediction
+    ]
     return np.array(prediction, dtype=object)
 
 
 def generate_annotations(num_annotations, num_classes=5, max_boxes=5, image_size=300):
     """Generates num_annotations number of annotations based on passed in hyperparameters in same format as expected by find_label_issues and get_label_quality_scores"""
 
-    annotations = []
-    for i in range(num_annotations):
-        annotations.append(generate_annotation(num_classes, image_size, max_boxes))
-    return annotations
+    return [
+        generate_annotation(num_classes, image_size, max_boxes)
+        for _ in range(num_annotations)
+    ]
 
 
 def generate_annotation(num_classes, image_size, max_boxes):
@@ -157,8 +155,7 @@ def generate_annotation(num_classes, image_size, max_boxes):
     num_boxes = np.random.randint(low=1, high=max_boxes)
     bboxes = np.array([generate_bbox(image_size) for _ in range(num_boxes)])
     labels = generate_labels(num_classes, num_boxes)
-    annotation = {"bboxes": bboxes, "labels": labels}
-    return annotation
+    return {"bboxes": bboxes, "labels": labels}
 
 
 def generate_labels(num_classes, num_boxes):
@@ -222,14 +219,10 @@ def test_get_label_quality_scores_custom_weights(agg_weights):
         assert (
             scores[-NUM_BAD_SAMPLES:][scores[-NUM_BAD_SAMPLES:] != 1.0] < 0.8
         ).any()  # swapped label issues get low scores
-    elif agg_weights["overlooked"] == 1.0:
+    elif agg_weights["overlooked"] == 1.0 or agg_weights["badloc"] == 1.0:
         assert (
             scores[-NUM_BAD_SAMPLES:][scores[-NUM_BAD_SAMPLES:] != 1.0] < 0.7
         ).all()  # overlooked label issues get low scores
-    elif agg_weights["badloc"] == 1.0:
-        assert (
-            scores[-NUM_BAD_SAMPLES:][scores[-NUM_BAD_SAMPLES:] != 1.0] < 0.7
-        ).all()  # label issues get low scores
 
 
 def test_issues_from_scores():

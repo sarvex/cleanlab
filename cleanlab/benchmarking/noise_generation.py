@@ -260,8 +260,7 @@ def generate_noise_matrix_from_trace(
 
     if valid_noise_matrix and trace <= 1:
         raise ValueError(
-            "trace = {}. trace > 1 is necessary for a".format(trace)
-            + " valid noise matrix to be returned (valid_noise_matrix == True)"
+            f"trace = {trace}. trace > 1 is necessary for a valid noise matrix to be returned (valid_noise_matrix == True)"
         )
 
     if valid_noise_matrix and py is None and K > 2:
@@ -270,7 +269,7 @@ def generate_noise_matrix_from_trace(
         )
 
     if K <= 1:
-        raise ValueError("K must be >= 2, but K = {}.".format(K))
+        raise ValueError(f"K must be >= 2, but K = {K}.")
 
     if max_iter < 1:
         return None
@@ -290,16 +289,14 @@ def generate_noise_matrix_from_trace(
             return noise_mat if np.random.rand() > 0.5 else np.rot90(noise_mat, k=2)
         else:  # No zero noise rates
             diag = generate_n_rand_probabilities_that_sum_to_m(2, trace)
-            noise_matrix = np.array(
+            return np.array(
                 [
                     [diag[0], 1 - diag[1]],
                     [1 - diag[0], diag[1]],
                 ]
             )
-            return noise_matrix
-
-            # K > 2
-    for z in range(max_iter):
+                    # K > 2
+    for _ in range(max_iter):
         noise_matrix = np.zeros(shape=(K, K))
 
         # Randomly generate noise_matrix diagonal.
@@ -312,7 +309,7 @@ def generate_noise_matrix_from_trace(
         np.fill_diagonal(noise_matrix, nm_diagonal)
 
         # Randomly distribute number of zero-noise-rates across columns
-        num_col_with_noise = K - np.count_nonzero(1 == nm_diagonal)
+        num_col_with_noise = K - np.count_nonzero(nm_diagonal == 1)
         num_zero_noise_rates = int(K * (K - 1) * frac_zero_noise_rates)
         # Remove zeros already in [1,0,..,0] columns
         num_zero_noise_rates -= (K - num_col_with_noise) * (K - 1)

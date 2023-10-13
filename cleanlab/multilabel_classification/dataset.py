@@ -172,9 +172,9 @@ def rank_classes_by_multilabel_quality(
     if class_names is None:
         return_columns = return_columns[1:]
     for class_num, row in issues_df.iterrows():
+        if class_names is not None:
+            issues_dict[row["Class Index"]]["Class Name"] = row["Class Name"]
         if row["In Given Label"]:
-            if class_names is not None:
-                issues_dict[row["Class Index"]]["Class Name"] = row["Class Name"]
             issues_dict[row["Class Index"]]["Label Issues"] = int(
                 row["Issue Probability"] * num_examples
             )
@@ -183,8 +183,6 @@ def rank_classes_by_multilabel_quality(
                 1 - issues_dict[row["Class Index"]]["Label Noise"]
             )
         else:
-            if class_names is not None:
-                issues_dict[row["Class Index"]]["Class Name"] = row["Class Name"]
             issues_dict[row["Class Index"]]["Inverse Label Issues"] = int(
                 row["Issue Probability"] * num_examples
             )
@@ -227,8 +225,11 @@ def _get_num_examples_multilabel(labels=None, confident_joint: Optional[np.ndarr
             "or provide both num_example and joint as input parameters."
         )
     _confident_joint = cast(np.ndarray, confident_joint)
-    num_examples = len(labels) if labels is not None else cast(int, np.sum(_confident_joint[0]))
-    return num_examples
+    return (
+        len(labels)
+        if labels is not None
+        else cast(int, np.sum(_confident_joint[0]))
+    )
 
 
 def overall_multilabel_health_score(

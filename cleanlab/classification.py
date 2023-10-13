@@ -503,10 +503,7 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
         else:  # set args that may not have been set if `self.find_label_issues()` wasn't called yet
             assert_valid_inputs(X, labels, pred_probs)
             if self.num_classes is None:
-                if noise_matrix is not None:
-                    label_matrix = noise_matrix
-                else:
-                    label_matrix = inverse_noise_matrix
+                label_matrix = inverse_noise_matrix if noise_matrix is None else noise_matrix
                 self.num_classes = get_num_classes(labels, pred_probs, label_matrix)
             if self.verbose:
                 print("Using provided label_issues instead of finding label issues.")
@@ -566,35 +563,29 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
                 self.clf_final_kwargs["sample_weight"] = sample_weight_auto
                 if self.verbose:
                     print("Fitting final model on the clean data ...")
-            else:
-                if self.verbose:
-                    if "sample_weight" in self.clf_final_kwargs:
-                        print("Fitting final model on the clean data with custom sample_weight ...")
-                    else:
-                        if (
-                            "sample_weight" in inspect.signature(self.clf.fit).parameters
-                            and self.noise_matrix is None
-                        ):
-                            print(
-                                "Cannot utilize sample weights for final training! "
-                                "Why this matters: during final training, sample weights help account for the amount of removed data in each class. "
-                                "This helps ensure the correct class prior for the learned model. "
-                                "To use sample weights, you need to either provide the noise_matrix or have previously called self.find_label_issues() instead of filter.find_label_issues() which computes them for you."
-                            )
-                        print("Fitting final model on the clean data ...")
+            elif self.verbose:
+                if "sample_weight" in self.clf_final_kwargs:
+                    print("Fitting final model on the clean data with custom sample_weight ...")
+                else:
+                    if (
+                        "sample_weight" in inspect.signature(self.clf.fit).parameters
+                        and self.noise_matrix is None
+                    ):
+                        print(
+                            "Cannot utilize sample weights for final training! "
+                            "Why this matters: during final training, sample weights help account for the amount of removed data in each class. "
+                            "This helps ensure the correct class prior for the learned model. "
+                            "To use sample weights, you need to either provide the noise_matrix or have previously called self.find_label_issues() instead of filter.find_label_issues() which computes them for you."
+                        )
+                    print("Fitting final model on the clean data ...")
 
-        elif sample_weight is not None and "sample_weight" not in self.clf_final_kwargs:
+        elif "sample_weight" not in self.clf_final_kwargs:
             self.clf_final_kwargs["sample_weight"] = sample_weight[x_mask]
             if self.verbose:
                 print("Fitting final model on the clean data with custom sample_weight ...")
 
-        else:  # pragma: no cover
-            if self.verbose:
-                if "sample_weight" in self.clf_final_kwargs:
-                    print("Fitting final model on the clean data with custom sample_weight ...")
-                else:
-                    print("Fitting final model on the clean data ...")
-
+        elif self.verbose:
+            print("Fitting final model on the clean data with custom sample_weight ...")
         self.clf.fit(x_cleaned, labels_cleaned, **self.clf_final_kwargs)
 
         if self.verbose:
@@ -618,19 +609,18 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
         class_predictions : np.ndarray
           Vector of class predictions for the test examples.
         """
-        if self._default_clf:
-            if args:
-                X = args[0]
-            elif "X" in kwargs:
-                X = kwargs["X"]
-                del kwargs["X"]
-            else:
-                raise ValueError("No input provided to predict, please provide X.")
-            X = force_two_dimensions(X)
-            new_args = (X,) + args[1:]
-            return self.clf.predict(*new_args, **kwargs)
-        else:
+        if not self._default_clf:
             return self.clf.predict(*args, **kwargs)
+        if args:
+            X = args[0]
+        elif "X" in kwargs:
+            X = kwargs["X"]
+            del kwargs["X"]
+        else:
+            raise ValueError("No input provided to predict, please provide X.")
+        X = force_two_dimensions(X)
+        new_args = (X,) + args[1:]
+        return self.clf.predict(*new_args, **kwargs)
 
     def predict_proba(self, *args, **kwargs) -> np.ndarray:
         """Predict class probabilities ``P(true label=k)`` using your wrapped classifier `clf`.
@@ -646,19 +636,18 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
         pred_probs : np.ndarray
           ``(N x K)`` array of predicted class probabilities, one row for each test example.
         """
-        if self._default_clf:
-            if args:
-                X = args[0]
-            elif "X" in kwargs:
-                X = kwargs["X"]
-                del kwargs["X"]
-            else:
-                raise ValueError("No input provided to predict, please provide X.")
-            X = force_two_dimensions(X)
-            new_args = (X,) + args[1:]
-            return self.clf.predict_proba(*new_args, **kwargs)
-        else:
+        if not self._default_clf:
             return self.clf.predict_proba(*args, **kwargs)
+        if args:
+            X = args[0]
+        elif "X" in kwargs:
+            X = kwargs["X"]
+            del kwargs["X"]
+        else:
+            raise ValueError("No input provided to predict, please provide X.")
+        X = force_two_dimensions(X)
+        new_args = (X,) + args[1:]
+        return self.clf.predict_proba(*new_args, **kwargs)
 
     def score(self, X, y, sample_weight=None) -> float:
         """Evaluates your wrapped classifier `clf`'s score on a test set `X` with labels `y`.
@@ -682,18 +671,17 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
         """
         if self._default_clf:
             X = force_two_dimensions(X)
-        if hasattr(self.clf, "score"):
-            # Check if sample_weight in clf.score()
-            if "sample_weight" in inspect.signature(self.clf.score).parameters:
-                return self.clf.score(X, y, sample_weight=sample_weight)
-            else:
-                return self.clf.score(X, y)
-        else:
+        if not hasattr(self.clf, "score"):
             return accuracy_score(
                 y,
                 self.clf.predict(X),
                 sample_weight=sample_weight,
             )
+        # Check if sample_weight in clf.score()
+        if "sample_weight" in inspect.signature(self.clf.score).parameters:
+            return self.clf.score(X, y, sample_weight=sample_weight)
+        else:
+            return self.clf.score(X, y)
 
     def find_label_issues(
         self,
@@ -770,17 +758,14 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
         labels = labels_to_array(labels)
         if noise_matrix is not None and np.trace(noise_matrix) <= 1:
             t = np.round(np.trace(noise_matrix), 2)
-            raise ValueError("Trace(noise_matrix) is {}, but must exceed 1.".format(t))
+            raise ValueError(f"Trace(noise_matrix) is {t}, but must exceed 1.")
         if inverse_noise_matrix is not None and (np.trace(inverse_noise_matrix) <= 1):
             t = np.round(np.trace(inverse_noise_matrix), 2)
-            raise ValueError("Trace(inverse_noise_matrix) is {}. Must exceed 1.".format(t))
+            raise ValueError(f"Trace(inverse_noise_matrix) is {t}. Must exceed 1.")
 
         if self._default_clf:
             X = force_two_dimensions(X)
-        if noise_matrix is not None:
-            label_matrix = noise_matrix
-        else:
-            label_matrix = inverse_noise_matrix
+        label_matrix = inverse_noise_matrix if noise_matrix is None else noise_matrix
         self.num_classes = get_num_classes(labels, pred_probs, label_matrix)
         if (pred_probs is None) and (len(labels) / self.num_classes < self.cv_n_folds):
             raise ValueError(
@@ -814,7 +799,7 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
                 print("Using predicted probabilities to identify label issues ...")
 
             if self.find_label_issues_kwargs:
-                warnings.warn(f"`find_label_issues_kwargs` is not used when `low_memory=True`.")
+                warnings.warn("`find_label_issues_kwargs` is not used when `low_memory=True`.")
             arg_values = {
                 "thresholds": thresholds,
                 "noise_matrix": noise_matrix,
@@ -933,7 +918,10 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
             # Add confident joint to find label issue args if it is not previously specified
             if "confident_joint" not in self.find_label_issues_kwargs.keys():
                 # however does not add if users specify filter_by="confident_learning", as it will throw a warning
-                if not self.find_label_issues_kwargs.get("filter_by") == "confident_learning":
+                if (
+                    self.find_label_issues_kwargs.get("filter_by")
+                    != "confident_learning"
+                ):
                     self.find_label_issues_kwargs["confident_joint"] = self.confident_joint
 
             labels = labels_to_array(labels)
@@ -1068,7 +1056,7 @@ class CleanLearning(BaseEstimator):  # Inherits sklearn classifier
                 raise ValueError("labels must match label_issues['given_label']")
             return label_issues
         elif isinstance(label_issues, np.ndarray):
-            if not label_issues.dtype in [np.dtype("bool"), np.dtype("int")]:
+            if label_issues.dtype not in [np.dtype("bool"), np.dtype("int")]:
                 raise ValueError("If label_issues is numpy.array, dtype must be 'bool' or 'int'.")
             if label_issues.dtype is np.dtype("bool") and label_issues.shape != labels.shape:
                 raise ValueError(

@@ -128,23 +128,22 @@ def display_issues(
             if labels and class_names:
                 given = class_names[given]
 
-            shown += 1
             print(f"Sentence index: {i}, Token index: {j}")
             print(f"Token: {word}")
             if labels and not pred_probs:
                 print(f"Given label: {given}")
             elif not labels and pred_probs:
                 print(f"Predicted label according to provided pred_probs: {prediction}")
-            elif labels and pred_probs:
+            elif labels:
                 print(
                     f"Given label: {given}, predicted label according to provided pred_probs: {prediction}"
                 )
             print("----")
             print(color_sentence(sentence, word))
         else:
-            shown += 1
             sentence = get_sentence(tokens[issue])
             print(f"Sentence issue: {sentence}")
+        shown += 1
         if shown == top:
             break
         print("\n")
@@ -237,7 +236,7 @@ def common_label_issues(
                 count[word] = 0
             count[word] += 1
 
-        words = [word for word in count.keys()]
+        words = list(count.keys())
         freq = [count[word] for word in words]
         rank = np.argsort(freq)[::-1][:top]
 
@@ -266,7 +265,7 @@ def common_label_issues(
             count[word] = np.zeros([n, n], dtype=int)
         if (label, pred) not in exclude:
             count[word][label][pred] += 1
-    words = [word for word in count.keys()]
+    words = list(count.keys())
     freq = [np.sum(count[word]) for word in words]
     rank = np.argsort(freq)[::-1][:top]
 
@@ -299,10 +298,10 @@ def common_label_issues(
             for j in range(n):
                 num = count[word][i][j]
                 if num > 0:
-                    if not class_names:
-                        info.append([word, i, j, num])
-                    else:
+                    if class_names:
                         info.append([word, class_names[i], class_names[j], num])
+                    else:
+                        info.append([word, i, j, num])
     info = sorted(info, key=lambda x: x[3], reverse=True)
     return pd.DataFrame(
         info, columns=["token", "given_label", "predicted_label", "num_label_issues"]

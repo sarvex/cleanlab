@@ -48,8 +48,8 @@ def make_data(
         test_data.append(
             np.random.multivariate_normal(mean=means[idx], cov=covs[idx], size=sizes[idx])
         )
-        labels.append(np.array([idx for i in range(sizes[idx])]))
-        test_labels.append(np.array([idx for i in range(sizes[idx])]))
+        labels.append(np.array([idx for _ in range(sizes[idx])]))
+        test_labels.append(np.array([idx for _ in range(sizes[idx])]))
     X_train = np.vstack(local_data)
     true_labels_train = np.hstack(labels)
     X_test = np.vstack(test_data)
@@ -152,7 +152,7 @@ def test_order_label_issues_using_scoring_func_ranking(scoring_method_func, adju
     # check if method supports adjust_pred_probs
     # do not run the test below if the method does not support adjust_pred_probs
     # confidence_weighted_entropy scoring method does not support adjust_pred_probs
-    if not (adjust_pred_probs == True and method == "confidence_weighted_entropy"):
+    if adjust_pred_probs != True or method != "confidence_weighted_entropy":
         indices = np.arange(len(data["label_errors_mask"]))[
             data["label_errors_mask"]
         ]  # indices of label issues
@@ -217,17 +217,17 @@ def test__subtract_confident_thresholds():
 @pytest.mark.parametrize("adjust_pred_probs", [False, True])
 @pytest.mark.parametrize("weight_ensemble_members_by", ["uniform", "accuracy", "log_loss_search"])
 def test_ensemble_scoring_func(method, adjust_pred_probs, weight_ensemble_members_by):
-    labels = data["labels"]
-    pred_probs = data["pred_probs"]
-
     # check if method supports adjust_pred_probs
     # do not run the test below if the method does not support adjust_pred_probs
     # confidence_weighted_entropy scoring method does not support adjust_pred_probs
-    if not (adjust_pred_probs == True and method == "confidence_weighted_entropy"):
+    if adjust_pred_probs != True or method != "confidence_weighted_entropy":
         # baseline scenario where all the pred_probs are the same in the ensemble list
         num_repeat = 3
+        pred_probs = data["pred_probs"]
+
         pred_probs_list = list(np.repeat([pred_probs], num_repeat, axis=0))
 
+        labels = data["labels"]
         # get label quality score with single pred_probs
         label_quality_scores = rank.get_label_quality_scores(
             labels, pred_probs, method=method, adjust_pred_probs=adjust_pred_probs

@@ -286,14 +286,13 @@ class CleanLearning(BaseEstimator):
                 model_kwargs=model_kwargs,
                 **find_label_issues_kwargs,
             )
-        else:
-            if self.verbose:
-                print("Using provided label_issues instead of finding label issues.")
-                if self.label_issues_df is not None:
-                    print(
-                        "These will overwrite self.label_issues_df and will be returned by "
-                        "`self.get_label_issues()`. "
-                    )
+        elif self.verbose:
+            print("Using provided label_issues instead of finding label issues.")
+            if self.label_issues_df is not None:
+                print(
+                    "These will overwrite self.label_issues_df and will be returned by "
+                    "`self.get_label_issues()`. "
+                )
 
         self.label_issues_df = self._process_label_issues_arg(label_issues, y)
         self.label_issues_mask = self.label_issues_df["is_label_issue"].to_numpy()
@@ -308,9 +307,8 @@ class CleanLearning(BaseEstimator):
             model_final_kwargs["sample_weight"] = sample_weight[X_mask]
             if self.verbose:
                 print("Fitting final model on the clean data with custom sample_weight ...")
-        else:
-            if self.verbose:
-                print("Fitting final model on the clean data ...")
+        elif self.verbose:
+            print("Fitting final model on the clean data ...")
 
         self.model.fit(X_cleaned, y_cleaned, **model_final_kwargs)
 
@@ -363,17 +361,16 @@ class CleanLearning(BaseEstimator):
         score : float
             Number quantifying the performance of this regression model on the test data.
         """
-        if hasattr(self.model, "score"):
-            if "sample_weight" in inspect.signature(self.model.score).parameters:
-                return self.model.score(X, y, sample_weight=sample_weight)
-            else:
-                return self.model.score(X, y)
-        else:
+        if not hasattr(self.model, "score"):
             return r2_score(
                 y,
                 self.model.predict(X),
                 sample_weight=sample_weight,
             )
+        if "sample_weight" in inspect.signature(self.model.score).parameters:
+            return self.model.score(X, y, sample_weight=sample_weight)
+        else:
+            return self.model.score(X, y)
 
     def find_label_issues(
         self,
@@ -479,16 +476,16 @@ class CleanLearning(BaseEstimator):
 
         if uncertainty is None:
             epistemic_uncertainty = self.get_epistemic_uncertainty(X, y, predictions=predictions)
-            if self.include_aleatoric_uncertainty:
-                aleatoric_uncertainty = self.get_aleatoric_uncertainty(X, residual)
-            else:
-                aleatoric_uncertainty = 0
+            aleatoric_uncertainty = (
+                self.get_aleatoric_uncertainty(X, residual)
+                if self.include_aleatoric_uncertainty
+                else 0
+            )
             uncertainty = epistemic_uncertainty + aleatoric_uncertainty
-        else:
-            if isinstance(uncertainty, np.ndarray) and len(y) != len(uncertainty):
-                raise ValueError(
-                    "If uncertainty is passed in as an array, it must have the same length as y."
-                )
+        elif isinstance(uncertainty, np.ndarray) and len(y) != len(uncertainty):
+            raise ValueError(
+                "If uncertainty is passed in as an array, it must have the same length as y."
+            )
 
         label_quality_scores = np.exp(-abs(residual) / (uncertainty + TINY_VALUE))
 
@@ -572,21 +569,20 @@ class CleanLearning(BaseEstimator):
         """
         X, y = assert_valid_regression_inputs(X, y)
 
-        if self.n_boot == 0:  # does not estimate epistemic uncertainty
+        if self.n_boot == 0:
             return np.zeros(len(y))
-        else:
-            bootstrap_predictions = np.zeros(shape=(len(y), self.n_boot))
-            for i in range(self.n_boot):
-                bootstrap_predictions[:, i] = self._get_cv_predictions(X, y, cv_n_folds=2)
+        bootstrap_predictions = np.zeros(shape=(len(y), self.n_boot))
+        for i in range(self.n_boot):
+            bootstrap_predictions[:, i] = self._get_cv_predictions(X, y, cv_n_folds=2)
 
-            # add a set of predictions from model that was already trained
-            if predictions is not None:
-                _, predictions = assert_valid_regression_inputs(X, predictions)
-                bootstrap_predictions = np.hstack(
-                    [bootstrap_predictions, predictions.reshape(-1, 1)]
-                )
+        # add a set of predictions from model that was already trained
+        if predictions is not None:
+            _, predictions = assert_valid_regression_inputs(X, predictions)
+            bootstrap_predictions = np.hstack(
+                [bootstrap_predictions, predictions.reshape(-1, 1)]
+            )
 
-            return np.sqrt(np.var(bootstrap_predictions, axis=1))
+        return np.sqrt(np.var(bootstrap_predictions, axis=1))
 
     def get_aleatoric_uncertainty(
         self,
@@ -750,7 +746,7 @@ class CleanLearning(BaseEstimator):
         Returns a tuple containing the the best value of k (ie. the one that has the best r squared score),
         and the corrsponding r squared score obtained when dropping k% of the data.
         """
-        if len(coarse_search_range) == 0:
+        if not coarse_search_range:
             raise ValueError("coarse_search_range must have at least 1 value of k")
         elif len(coarse_search_range) == 1:
             curr_k = coarse_search_range[0]

@@ -513,5 +513,8 @@ def _get_num_examples(labels=None, confident_joint: Optional[np.ndarray] = None)
             "or provide both num_example and joint as input parameters."
         )
     _confident_joint = cast(np.ndarray, confident_joint)
-    num_examples = len(labels) if labels is not None else cast(int, np.sum(_confident_joint))
-    return num_examples
+    return (
+        len(labels)
+        if labels is not None
+        else cast(int, np.sum(_confident_joint))
+    )

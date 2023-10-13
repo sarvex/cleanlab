@@ -55,7 +55,7 @@ def get_sentence(words: List[str]) -> str:
     sentence = ""
     for word in words:
         if word not in string.punctuation or word in ["-", "("]:
-            word = " " + word
+            word = f" {word}"
         sentence += word
     sentence = sentence.replace(" '", "'").replace("( ", "(").strip()
     return sentence
@@ -143,8 +143,7 @@ def process_token(token: str, replace: List[Tuple[str, str]] = [("#", "")]) -> s
     pattern = "|".join(replace_dict.keys())
     compiled_pattern = re.compile(pattern)
     replacement = lambda match: replace_dict[re.escape(match.group(0))]
-    processed_token = compiled_pattern.sub(replacement, token)
-    return processed_token
+    return compiled_pattern.sub(replacement, token)
 
 
 def mapping(entities: List[int], maps: List[int]) -> List[int]:
@@ -283,7 +282,7 @@ def _replace_sentence(sentence: str, word: str, new_word: str) -> str:
     """
 
     new_sentence, number_of_substitions = re.subn(
-        r"\b{}\b".format(re.escape(word)), new_word, sentence
+        f"\b{re.escape(word)}\b", new_word, sentence
     )
     if number_of_substitions == 0:
         # Use basic string manipulation if regex fails

@@ -150,7 +150,7 @@ class FastTextClassifier(BaseEstimator):  # Inherits sklearn base classifier
         # Create maps: label strings <-> integers when label strings are used
         unique_labels = sorted(list(unique_labels))
         self.label2num = dict(zip(unique_labels, range(len(unique_labels))))
-        self.num2label = dict((y, x) for x, y in self.label2num.items())
+        self.num2label = {y: x for x, y in self.label2num.items()}
 
     def _create_train_data(self, data_indices):
         """Returns filename of the masked fasttext data file.
@@ -161,11 +161,10 @@ class FastTextClassifier(BaseEstimator):  # Inherits sklearn base classifier
         if data_indices is None:
             self.masked_data_was_created = False
             return self.train_data_fn
-        # Mask training data by data_indices
         else:
             len_label = len(LABEL)
             data_indices = sorted(data_indices, reverse=True)
-            masked_fn = "fastTextClf_" + str(int(time.time())) + ".txt"
+            masked_fn = f"fastTextClf_{int(time.time())}.txt"
             open(masked_fn, "w").close()
             # Read in training data one line at a time
             with open(self.train_data_fn, "r") as rf:
@@ -199,7 +198,7 @@ class FastTextClassifier(BaseEstimator):  # Inherits sklearn base classifier
         if self.clf is None:
             self_clf_copy = None
         else:
-            fn = "tmp_{}.fasttext.model".format(int(time.time()))
+            fn = f"tmp_{int(time.time())}.fasttext.model"
             self.clf.save_model(fn)
             self_clf_copy = load_model(fn)
             os.remove(fn)
@@ -304,6 +303,4 @@ class FastTextClassifier(BaseEstimator):  # Inherits sklearn base classifier
         else:
             y = [self.num2label[z] for z in y]
 
-        apk = np.mean([y[i] in l for i, l in enumerate(pred)])
-
-        return apk
+        return np.mean([y[i] in l for i, l in enumerate(pred)])

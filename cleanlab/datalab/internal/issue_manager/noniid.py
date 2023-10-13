@@ -56,8 +56,7 @@ def simplified_kolmogorov_smirnov_test(
     neighbor_cdf = np.cumsum(neighbor_histogram)
     non_neighbor_cdf = np.cumsum(non_neighbor_histogram)
 
-    statistic = np.max(np.abs(neighbor_cdf - non_neighbor_cdf))
-    return statistic
+    return np.max(np.abs(neighbor_cdf - non_neighbor_cdf))
 
 
 class NonIIDIssueManager(IssueManager):
@@ -224,12 +223,11 @@ class NonIIDIssueManager(IssueManager):
         assert knn_graph is not None, "knn_graph must be provided or computed."
         statistics_dict = self._build_statistics_dictionary(knn_graph=knn_graph)
 
-        info_dict = {
+        return {
             **issues_dict,
             **params_dict,  # type: ignore[arg-type]
             **statistics_dict,  # type: ignore[arg-type]
         }
-        return info_dict
 
     def _build_statistics_dictionary(self, knn_graph: csr_matrix) -> Dict[str, Dict[str, Any]]:
         statistics_dict: Dict[str, Dict[str, Any]] = {"statistics": {}}
@@ -257,7 +255,7 @@ class NonIIDIssueManager(IssueManager):
             np.random.seed(self.seed)
         perms = np.fromiter(
             itertools.chain.from_iterable(
-                np.random.permutation(N) for i in range(num_permutations)
+                np.random.permutation(N) for _ in range(num_permutations)
             ),
             dtype=int,
         ).reshape(num_permutations, N)
@@ -280,9 +278,7 @@ class NonIIDIssueManager(IssueManager):
 
         ks_stats = np.array([stats["ks"] for stats in statistics])
         ks_stats_kde = gaussian_kde(ks_stats)
-        p_value = ks_stats_kde.integrate_box(self.statistics["ks"], 100)
-
-        return p_value
+        return ks_stats_kde.integrate_box(self.statistics["ks"], 100)
 
     def _score_dataset(self) -> npt.NDArray[np.float64]:
         """This function computes a variant of the KS statistic for each
@@ -437,5 +433,4 @@ class NonIIDIssueManager(IssueManager):
         foreground_cdf = np.arange(sorted_neighbors.shape[0]) / (sorted_neighbors.shape[0] - 1)
 
         statistic = np.max(np.abs(foreground_cdf - background_cdf[sorted_neighbors - 1]))
-        statistics = {"ks": statistic}
-        return statistics
+        return {"ks": statistic}

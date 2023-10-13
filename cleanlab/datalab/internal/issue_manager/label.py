@@ -188,8 +188,7 @@ class LabelIssueManager(IssueManager):
         self._validate_pred_probs(pred_probs)
 
         summary_kwargs = self._get_summary_parameters(pred_probs)
-        summary = health_summary(**summary_kwargs)
-        return summary
+        return health_summary(**summary_kwargs)
 
     def _get_summary_parameters(self, pred_probs) -> Dict["str", Any]:
         """Collects a set of input parameters for the health summary function based on
@@ -212,7 +211,9 @@ class LabelIssueManager(IssueManager):
             summary_parameters = {
                 "confident_joint": self.health_summary_parameters["confident_joint"]
             }
-        elif all([x in self.health_summary_parameters for x in ["joint", "num_examples"]]):
+        elif all(
+            x in self.health_summary_parameters for x in ["joint", "num_examples"]
+        ):
             summary_parameters = {
                 k: self.health_summary_parameters[k] for k in ["joint", "num_examples"]
             }
@@ -247,19 +248,13 @@ class LabelIssueManager(IssueManager):
             "overlapping_classes": summary_dict["overlapping_classes"],
         }
 
-        cl_info = {}
-        for k in self.cl.__dict__:
-            if k not in ["py", "noise_matrix", "inverse_noise_matrix", "confident_joint"]:
-                continue
-            cl_info[k] = self.cl.__dict__[k]
-
-        info_dict = {
-            **issues_info,
-            **health_summary_info,
-            **cl_info,
+        cl_info = {
+            k: self.cl.__dict__[k]
+            for k in self.cl.__dict__
+            if k
+            in ["py", "noise_matrix", "inverse_noise_matrix", "confident_joint"]
         }
-
-        return info_dict
+        return issues_info | health_summary_info | cl_info
 
     def _validate_pred_probs(self, pred_probs) -> None:
         assert_valid_inputs(X=None, y=self.datalab.labels, pred_probs=pred_probs)

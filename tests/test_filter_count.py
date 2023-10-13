@@ -60,8 +60,8 @@ def make_data(
         test_data.append(
             np.random.multivariate_normal(mean=means[idx], cov=covs[idx], size=sizes[idx])
         )
-        labels.append(np.array([idx for i in range(sizes[idx])]))
-        test_labels.append(np.array([idx for i in range(sizes[idx])]))
+        labels.append(np.array([idx for _ in range(sizes[idx])]))
+        test_labels.append(np.array([idx for _ in range(sizes[idx])]))
     X_train = np.vstack(local_data)
     true_labels_train = np.hstack(labels)
     X_test = np.vstack(test_data)
@@ -405,7 +405,7 @@ def test_estimate_latent_py_method():
             labels=data["labels"],
             py_method=py_method,
         )
-        assert sum(py) - 1 < 1e-4
+        assert sum(py) < 1.0001
     try:
         py, nm, inv = count.estimate_latent(
             confident_joint=data["cj"],
@@ -484,15 +484,14 @@ def test_pruning_keep_at_least_n_per_class():
 
 def test_pruning_order_method():
     order_methods = ["self_confidence", "normalized_margin"]
-    results = []
-    for method in order_methods:
-        results.append(
-            filter.find_label_issues(
-                labels=data["labels"],
-                pred_probs=data["pred_probs"],
-                return_indices_ranked_by=method,
-            )
+    results = [
+        filter.find_label_issues(
+            labels=data["labels"],
+            pred_probs=data["pred_probs"],
+            return_indices_ranked_by=method,
         )
+        for method in order_methods
+    ]
     assert len(results[0]) == len(results[1])
 
 
@@ -1376,6 +1375,4 @@ def test_does_not_flag_correct_examples(filter_by):
     )
 
     matching_mask = labels == pred_labels  # mask specifying whether label == prediction
-    assert (
-        any(label_issues_mask[matching_mask]) == False
-    )  # make sure none of these are flagged as label error
+    assert not any(label_issues_mask[matching_mask])

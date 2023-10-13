@@ -284,13 +284,15 @@ class IssueFinder:
         missing_required_args_dict = {}
         for issue_name, required_args in required_defaults_dict.items():
             if issue_name in issue_types:
-                missing_args = set(required_args.keys()) - set(issue_types[issue_name].keys())
-                if missing_args:
+                if missing_args := set(required_args.keys()) - set(
+                    issue_types[issue_name].keys()
+                ):
                     missing_required_args_dict[issue_name] = missing_args
         if any(missing_required_args_dict.values()):
-            error_message = ""
-            for issue_name, missing_required_args in missing_required_args_dict.items():
-                error_message += f"Required argument {missing_required_args} for issue type {issue_name} was not provided.\n"
+            error_message = "".join(
+                f"Required argument {missing_required_args} for issue type {issue_name} was not provided.\n"
+                for issue_name, missing_required_args in missing_required_args_dict.items()
+            )
             raise ValueError(error_message)
 
     @staticmethod

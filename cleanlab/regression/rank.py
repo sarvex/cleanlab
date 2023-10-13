@@ -89,18 +89,15 @@ def get_label_quality_scores(
         "outre": _get_outre_score_for_each_label,
     }
 
-    scoring_func = scoring_funcs.get(method, None)
-    if not scoring_func:
+    if scoring_func := scoring_funcs.get(method, None):
+        return scoring_func(labels, predictions)
+    else:
         raise ValueError(
             f"""
             {method} is not a valid scoring method.
             Please choose a valid scoring technique: {scoring_funcs.keys()}.
             """
         )
-
-    # Calculate scores
-    label_quality_scores = scoring_func(labels, predictions)
-    return label_quality_scores
 
 
 def _get_residual_score_for_each_label(
@@ -131,8 +128,7 @@ def _get_residual_score_for_each_label(
 
     """
     residual = predictions - labels
-    label_quality_scores = np.exp(-abs(residual))
-    return label_quality_scores
+    return np.exp(-abs(residual))
 
 
 def _get_outre_score_for_each_label(
@@ -182,5 +178,4 @@ def _get_outre_score_for_each_label(
     knn = NearestNeighbors(n_neighbors=neighbors, metric=neighbor_metric).fit(features)
     ood = OutOfDistribution(params={"knn": knn})
 
-    label_quality_scores = ood.score(features=features)
-    return label_quality_scores
+    return ood.score(features=features)

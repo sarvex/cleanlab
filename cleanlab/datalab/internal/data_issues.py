@@ -209,13 +209,13 @@ class DataIssues:
 
         """
         key = "statistics"
-        statistics: Dict[str, Any] = issue_manager.info.get(key, {})
-        if statistics:
+        if statistics := issue_manager.info.get(key, {}):
             self.info[key].update(statistics)
 
     def _update_issues(self, issue_manager):
-        overlapping_columns = list(set(self.issues.columns) & set(issue_manager.issues.columns))
-        if overlapping_columns:
+        if overlapping_columns := list(
+            set(self.issues.columns) & set(issue_manager.issues.columns)
+        ):
             warnings.warn(
                 f"Overwriting columns {overlapping_columns} in self.issues with "
                 f"columns from issue manager {issue_manager}."

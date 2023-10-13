@@ -50,8 +50,8 @@ def make_data(
         test_data.append(
             np.random.multivariate_normal(mean=means[idx], cov=covs[idx], size=sizes[idx])
         )
-        labels.append(np.array([idx for i in range(sizes[idx])]))
-        test_labels.append(np.array([idx for i in range(sizes[idx])]))
+        labels.append(np.array([idx for _ in range(sizes[idx])]))
+        test_labels.append(np.array([idx for _ in range(sizes[idx])]))
     X_train = np.vstack(local_data)
     true_labels_train = np.hstack(labels)
     X_test = np.vstack(test_data)

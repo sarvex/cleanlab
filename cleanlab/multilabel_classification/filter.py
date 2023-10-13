@@ -132,7 +132,7 @@ def find_label_issues(
 
     if low_memory:
         if rank_by_kwargs:
-            warnings.warn(f"`rank_by_kwargs` is not used when `low_memory=True`.")
+            warnings.warn("`rank_by_kwargs` is not used when `low_memory=True`.")
 
         func_signature = inspect.signature(find_label_issues)
         default_args = {
@@ -266,7 +266,7 @@ def find_multilabel_issues_per_class(
         confident_joint_shape = confident_joint.shape
         if confident_joint_shape == (num_classes, num_classes):
             warnings.warn(
-                f"The new recommended format for `confident_joint` in multi_label settings is (num_classes,2,2) as output by compute_confident_joint(...,multi_label=True). Your K x K confident_joint in the old format is being ignored."
+                "The new recommended format for `confident_joint` in multi_label settings is (num_classes,2,2) as output by compute_confident_joint(...,multi_label=True). Your K x K confident_joint in the old format is being ignored."
             )
             confident_joint = None
         elif confident_joint_shape != (num_classes, 2, 2):
@@ -285,10 +285,7 @@ def find_multilabel_issues_per_class(
                 return_mask=return_indices_ranked_by is None,
             )
         else:
-            if confident_joint is None:
-                conf = None
-            else:
-                conf = confident_joint[class_num]
+            conf = None if confident_joint is None else confident_joint[class_num]
             if num_to_remove_per_class is not None:
                 ml_num_to_remove_per_class = [num_to_remove_per_class[class_num], 0]
             else:

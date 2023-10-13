@@ -175,14 +175,12 @@ class ImagelabIssueFinderAdapter(IssueFinder):
         if "image_issue_types" not in issue_types:
             return None
 
-        issue_types_copy = {}
-        for issue_type, params in issue_types["image_issue_types"].items():
-            if not params:
-                issue_types_copy[issue_type] = DEFAULT_CLEANVISION_ISSUES[issue_type]
-            else:
-                issue_types_copy[issue_type] = params
-
-        return issue_types_copy
+        return {
+            issue_type: DEFAULT_CLEANVISION_ISSUES[issue_type]
+            if not params
+            else params
+            for issue_type, params in issue_types["image_issue_types"].items()
+        }
 
     def find_issues(
         self,

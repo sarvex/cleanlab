@@ -78,7 +78,7 @@ def test_process_token():
 
 
 def test_mapping():
-    test_cases = [(l, expected) for l, expected in zip(labels, [[0, 0], [1, 1, 1], [0]])]
+    test_cases = list(zip(labels, [[0, 0], [1, 1, 1], [0]]))
     for l, expected in test_cases:
         mapped = mapping(l, maps)
         assert mapped == expected

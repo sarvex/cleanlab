@@ -33,7 +33,7 @@ class TestLabelIssueManager:
             "inverse_noise_matrix",
         ]
         assert all(
-            [key in info_keys for key in expected_keys]
+            key in info_keys for key in expected_keys
         ), f"Info should have the right keys, but is missing {set(expected_keys) - set(info_keys)}"
         # Compare results with low_memory=True
         clean_learning_kwargs = {"low_memory": True}
