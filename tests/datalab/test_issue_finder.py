@@ -12,8 +12,7 @@ class TestIssueFinder:
         N = 30
         K = 2
         y = np.random.randint(0, K, size=N)
-        lab = Datalab(data={"y": y}, label_name="y")
-        return lab
+        return Datalab(data={"y": y}, label_name="y")
 
     @pytest.fixture
     def issue_finder(self, lab):
@@ -57,7 +56,10 @@ class TestIssueFinder:
             m.setitem(issue_types, "issue_type_1", {})
             with pytest.raises(ValueError) as e:
                 issue_finder._validate_issue_types_dict(issue_types, defaults_dict)
-            assert all([string in str(e.value) for string in ["issue_type_1", "arg_1", "arg_2"]])
+            assert all(
+                string in str(e.value)
+                for string in ["issue_type_1", "arg_1", "arg_2"]
+            )
 
     @pytest.mark.parametrize(
         "defaults_dict",

@@ -162,7 +162,7 @@ def issues_from_scores(label_quality_scores: np.ndarray, *, threshold: float = 0
 
     if threshold > 1.0:
         raise ValueError(
-            f"""
+            """
             Threshold is a cutoff of label_quality_scores and therefore should be <= 1.
             """
         )
@@ -211,9 +211,7 @@ def _compute_label_quality_scores(
         )
     else:
         raise ValueError(
-            "Invalid method: '{}' is not a valid method for computing label quality scores. Please use the 'objectlab' method.".format(
-                method
-            )
+            f"Invalid method: '{method}' is not a valid method for computing label quality scores. Please use the 'objectlab' method."
         )
     return scores
 
@@ -227,8 +225,7 @@ def _get_min_pred_prob(
         for class_prediction in prediction:
             pred_probs.extend(list(class_prediction[:, -1]))
 
-    min_pred_prob = np.min(pred_probs)
-    return min_pred_prob
+    return np.min(pred_probs)
 
 
 def _prune_by_threshold(
@@ -317,8 +314,7 @@ def _separate_prediction(
 def _mod_coordinates(x: List[float]) -> Dict[str, Any]:
     """Takes is a list of xyxy coordinates and returns them in dictionary format."""
 
-    wd = {"x1": x[0], "y1": x[1], "x2": x[2], "y2": x[3]}
-    return wd
+    return {"x1": x[0], "y1": x[1], "x2": x[2], "y2": x[3]}
 
 
 def _get_overlap(bb1: List[float], bb2: List[float]) -> float:
@@ -375,12 +371,7 @@ def _get_iou(bb1: Dict[str, Any], bb2: Dict[str, Any]) -> float:
     bb1_area = (bb1["x2"] - bb1["x1"]) * (bb1["y2"] - bb1["y1"])
     bb2_area = (bb2["x2"] - bb2["x1"]) * (bb2["y2"] - bb2["y1"])
 
-    # compute the intersection over union by taking the intersection
-    # area and dividing it by the sum of prediction + ground-truth
-    # areas - the interesection area
-    iou = intersection_area / float(bb1_area + bb2_area - intersection_area)
-    # There are some hyper-parameters here like consider tile area/object area
-    return iou
+    return intersection_area / float(bb1_area + bb2_area - intersection_area)
 
 
 def _has_overlap(bbox_list, labels):
@@ -406,8 +397,7 @@ def _euc_dis(box1: List[float], box2: List[float]) -> float:
     x2, y2 = (box2[0] + box2[2]) / 2, (box2[1] + box2[3]) / 2
     p1 = np.array([x1, y1])
     p2 = np.array([x2, y2])
-    val2 = np.exp(-np.linalg.norm(p1 - p2) * EUC_FACTOR)
-    return val2
+    return np.exp(-np.linalg.norm(p1 - p2) * EUC_FACTOR)
 
 
 def _get_dist_matrix(bb1_list: np.ndarray, bb2_list: np.ndarray) -> np.ndarray:
@@ -458,14 +448,14 @@ def _get_valid_inputs_for_compute_scores_per_image(
     if lab_labels is None or lab_bboxes is None:
         if label is None:
             raise ValueError(
-                f"Pass in either one of label or label labels into auxiliary inputs. Both can not be None."
+                "Pass in either one of label or label labels into auxiliary inputs. Both can not be None."
             )
         lab_bboxes, lab_labels = _separate_label(label)
 
     if pred_labels is None or pred_label_probs is None or pred_bboxes is None:
         if prediction is None:
             raise ValueError(
-                f"Pass in either one of prediction or prediction labels and prediction probabilities into auxiliary inputs. Both can not be None."
+                "Pass in either one of prediction or prediction labels and prediction probabilities into auxiliary inputs. Both can not be None."
             )
         pred_bboxes, pred_labels, pred_label_probs = _separate_prediction(prediction)
 
@@ -506,7 +496,7 @@ def _get_valid_inputs_for_compute_scores(
     """Takes in alpha, labels and predictions and returns auxiliary input dictionary containing divided parts of labels and prediction per image."""
     if predictions is None or labels is None:
         raise ValueError(
-            f"Predictions and labels can not be None. Both are needed to get valid inputs."
+            "Predictions and labels can not be None. Both are needed to get valid inputs."
         )
     min_possible_similarity = _get_min_possible_similarity(alpha, predictions, labels)
 
@@ -527,11 +517,11 @@ def _get_valid_inputs_for_compute_scores(
 def _get_valid_score(scores_arr: np.ndarray, temperature: float) -> float:
     """Given scores array, returns valid score (softmin) or 1. Checks validity of score."""
     scores_arr = scores_arr[~np.isnan(scores_arr)]
-    if len(scores_arr) > 0:
-        valid_score = softmin1d(scores_arr, temperature=temperature)
-    else:
-        valid_score = 1.0
-    return valid_score
+    return (
+        softmin1d(scores_arr, temperature=temperature)
+        if len(scores_arr) > 0
+        else 1.0
+    )
 
 
 def _get_valid_subtype_score_params(

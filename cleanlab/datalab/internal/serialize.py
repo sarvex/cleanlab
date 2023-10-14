@@ -81,14 +81,13 @@ class _Serializer:
         force : bool
             If True, will overwrite existing files at the specified path.
         """
-        path_exists = os.path.exists(path)
-        if not path_exists:
-            os.mkdir(path)
-        else:
+        if path_exists := os.path.exists(path):
             if not force:
                 raise FileExistsError("Please specify a new path or set force=True")
             print(f"WARNING: Existing files will be overwritten by newly saved files at: {path}")
 
+        else:
+            os.mkdir(path)
         # Save the datalab object to disk.
         with open(os.path.join(path, OBJECT_FILENAME), "wb") as f:
             pickle.dump(datalab, f)

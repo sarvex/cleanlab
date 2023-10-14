@@ -42,12 +42,12 @@ def test_print_joint():
 
 
 def test_print_square():
-    for m in [noise_matrix, noise_matrix_2, single_element]:
+    for _ in [noise_matrix, noise_matrix_2, single_element]:
         util.print_square_matrix(noise_matrix, round_places=3)
 
 
 def test_print_noise_matrix():
-    for m in [noise_matrix, noise_matrix_2, single_element]:
+    for _ in [noise_matrix, noise_matrix_2, single_element]:
         util.print_noise_matrix(noise_matrix, round_places=3)
 
 
@@ -164,7 +164,7 @@ def test_normalized_entropy():
             assert 0.0 <= entropy <= 1.0
     # test multiple _assert_valid_inputs
     entropy = get_normalized_entropy(np.array([[0.0, 1.0], [0.5, 0.5]]))
-    assert all((0.0 <= entropy) & (entropy <= 1.0))
+    assert all((entropy >= 0.0) & (entropy <= 1.0))
 
     # raise errors for wrong probabilities.
     with pytest.raises(ValueError):

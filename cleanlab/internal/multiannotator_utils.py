@@ -46,7 +46,7 @@ def assert_valid_inputs_multiannotator(
         )
 
     # Raise error if labels are not formatted properly
-    if any([isinstance(label, str) for label in labels_multiannotator.ravel()]):
+    if any(isinstance(label, str) for label in labels_multiannotator.ravel()):
         raise ValueError(
             "Labels cannot be strings, they must be zero-indexed integers corresponding to class indices."
         )
@@ -282,11 +282,9 @@ def compute_soft_cross_entropy(
         ) / len(labels_subset)
 
     clipped_pred_probs = np.clip(pred_probs, a_min=SMALL_CONST, a_max=None)
-    soft_cross_entropy = -np.sum(
+    return -np.sum(
         empirical_label_distribution * np.log(clipped_pred_probs), axis=1
     ) / np.log(num_classes)
-
-    return soft_cross_entropy
 
 
 def find_best_temp_scaler(
@@ -318,8 +316,7 @@ def find_best_temp_scaler(
         soft_cross_entropy_fine[i] = np.mean(
             compute_soft_cross_entropy(labels_multiannotator, scaled_pred_probs)
         )
-    best_temp = fine_search_range[np.argmin(soft_cross_entropy_fine)]
-    return best_temp
+    return fine_search_range[np.argmin(soft_cross_entropy_fine)]
 
 
 def _set_fine_search_range(

@@ -19,13 +19,11 @@ class DatalabUnavailable:
         self.message = message
 
     def __getattr__(self, name):
-        message = self.message + f" (raised when trying to access {name})"
+        message = f"{self.message} (raised when trying to access {name})"
         raise ImportError(message)
 
     def __call__(self, *args, **kwargs):
-        message = (
-            self.message + f" (raised when trying to call with args: {args}, kwargs: {kwargs})"
-        )
+        message = f"{self.message} (raised when trying to call with args: {args}, kwargs: {kwargs})"
         raise ImportError(message)
 
 

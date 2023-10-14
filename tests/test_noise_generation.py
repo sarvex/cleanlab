@@ -34,7 +34,7 @@ def test_main_pipeline(
     # Check that sum of each column is 1
     assert all(abs(nm.sum(axis=0) - 1) < 1e-4)
     # Check that joint sums to 1.
-    assert abs(np.sum(nm * py) - 1 < 1e-4)
+    assert abs(np.sum(nm * py) < 1.0001)
     s = noise_generation.generate_noisy_labels(y, nm)
     assert noise_generation.noise_matrix_is_valid(nm, py)
 

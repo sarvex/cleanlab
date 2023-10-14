@@ -210,8 +210,7 @@ class Data:
             raise DatasetLoadError(type(data_string))
 
         dataset = factory[extension](data_string)
-        dataset_cast = cast(Dataset, dataset)
-        return dataset_cast
+        return cast(Dataset, dataset)
 
 
 class Label:
@@ -232,9 +231,7 @@ class Label:
             self._validate_labels()
 
     def __len__(self) -> int:
-        if self.labels is None:
-            return 0
-        return len(self.labels)
+        return 0 if self.labels is None else len(self.labels)
 
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, Label):

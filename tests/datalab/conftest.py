@@ -113,16 +113,14 @@ def custom_issue_manager():
 
 def generate_image():
     arr = np.random.randint(low=0, high=256, size=(300, 300, 3), dtype=np.uint8)
-    img = Image.fromarray(arr, mode="RGB")
-    return img
+    return Image.fromarray(arr, mode="RGB")
 
 
 @pytest.fixture
 def image_dataset():
     data_path = "./tests/datalab/data"
-    dataset = load_dataset(
+    return load_dataset(
         "imagefolder",
         data_dir=data_path,
         split="train",
     )
-    return dataset

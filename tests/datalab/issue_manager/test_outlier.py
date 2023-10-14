@@ -27,7 +27,7 @@ class TestOutlierIssueManager:
     def test_init(self, issue_manager, issue_manager_with_threshold):
         assert isinstance(issue_manager.ood, OutOfDistribution)
         assert issue_manager.ood.params["k"] == 3
-        assert issue_manager.threshold == None
+        assert issue_manager.threshold is None
 
         assert issue_manager_with_threshold.ood.params["k"] == 2
         assert issue_manager_with_threshold.threshold == 0.5
@@ -119,7 +119,7 @@ class TestOutlierIssueManager:
         # Mock some vector and matrix values in the info dict
         mock_info = issue_manager.info
         vector = np.array([1, 2, 3, 4, 5, 6])
-        matrix = np.array([[i for i in range(20)] for _ in range(10)])
+        matrix = np.array([list(range(20)) for _ in range(10)])
         df = pd.DataFrame(matrix)
         mock_list = [9, 8, 7, 6, 5, 4, 3, 2, 1]
         mock_dict = {"a": 1, "b": 2, "c": 3}

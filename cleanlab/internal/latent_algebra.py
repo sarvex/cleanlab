@@ -234,7 +234,7 @@ def compute_py(
         The fraction (prior probability) of each TRUE class label, ``P(true_label = k)``."""
 
     if len(np.shape(ps)) > 2 or (len(np.shape(ps)) == 2 and np.shape(ps)[0] != 1):
-        w = "Input parameter np.ndarray ps has shape " + str(np.shape(ps))
+        w = f"Input parameter np.ndarray ps has shape {str(np.shape(ps))}"
         w += ", but shape should be (K, ) or (1, K)"
         warnings.warn(w)
 
@@ -264,8 +264,7 @@ def compute_py(
     elif py_method == "marginal_ps":
         py = np.dot(inverse_noise_matrix, ps)
     else:
-        err = "py_method {}".format(py_method)
-        err += " should be in [cnt, eqn, marginal, marginal_ps]"
+        err = f"py_method {py_method} should be in [cnt, eqn, marginal, marginal_ps]"
         raise ValueError(err)
 
     # Clip py (0,1), s.t. no class should have prob 0, hence 1e-6

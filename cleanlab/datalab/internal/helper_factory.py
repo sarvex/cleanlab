@@ -9,21 +9,12 @@ from cleanlab.datalab.internal.report import Reporter
 
 
 def issue_finder_factory(imagelab):
-    if imagelab:
-        return ImagelabIssueFinderAdapter
-    else:
-        return IssueFinder
+    return ImagelabIssueFinderAdapter if imagelab else IssueFinder
 
 
 def data_issues_factory(imagelab):
-    if imagelab:
-        return ImagelabDataIssuesAdapter
-    else:
-        return DataIssues
+    return ImagelabDataIssuesAdapter if imagelab else DataIssues
 
 
 def report_factory(imagelab):
-    if imagelab:
-        return ImagelabReporterAdapter
-    else:
-        return Reporter
+    return ImagelabReporterAdapter if imagelab else Reporter

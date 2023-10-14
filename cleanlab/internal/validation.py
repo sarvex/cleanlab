@@ -67,8 +67,8 @@ def assert_valid_inputs(
                 shape_supported = True
             except:
                 shape_supported = False
-        if (not len_supported) and (not shape_supported):
-            raise TypeError("Data features X must support either: len(X) or X.shape[0]")
+            if not shape_supported:
+                raise TypeError("Data features X must support either: len(X) or X.shape[0]")
 
         if num_examples != len(y):
             raise ValueError(
@@ -90,7 +90,7 @@ def assert_valid_inputs(
         else:
             assert isinstance(y, list)
             assert all(isinstance(y_i, list) for y_i in y)
-            highest_class = max([max(y_i) for y_i in y if len(y_i) != 0]) + 1
+            highest_class = max(max(y_i) for y_i in y if len(y_i) != 0) + 1
         if pred_probs.shape[1] < highest_class:
             raise ValueError(
                 f"pred_probs must have at least {highest_class} columns, based on the largest class index which appears in labels."
@@ -114,7 +114,7 @@ def assert_valid_class_labels(
     """
     if y.ndim != 1:
         raise ValueError("Labels must be 1D numpy array.")
-    if any([isinstance(label, str) for label in y]):
+    if any(isinstance(label, str) for label in y):
         raise ValueError(
             "Labels cannot be strings, they must be zero-indexed integers corresponding to class indices."
         )
@@ -129,8 +129,7 @@ def assert_valid_class_labels(
 
     if not allow_missing_classes:
         if (unique_classes != np.arange(len(unique_classes))).any():
-            msg = "cleanlab requires zero-indexed integer labels (0,1,2,..,K-1), but in "
-            msg += "your case: np.unique(labels) = {}. ".format(str(unique_classes))
+            msg = f"cleanlab requires zero-indexed integer labels (0,1,2,..,K-1), but in your case: np.unique(labels) = {str(unique_classes)}. "
             msg += "Every class in (0,1,2,..,K-1) must be present in labels as well."
             raise TypeError(msg)
 
@@ -185,8 +184,8 @@ def assert_indexing_works(
         except Exception:
             msg = (
                 "Data features X must support list-based indexing; i.e. one of these must work: \n"
+                + "1)  X[index_list] where say index_list = [0,1,3,10], or \n"
             )
-            msg += "1)  X[index_list] where say index_list = [0,1,3,10], or \n"
             msg += "2)  X.iloc[index_list] if X is pandas DataFrame."
             raise TypeError(msg)
 

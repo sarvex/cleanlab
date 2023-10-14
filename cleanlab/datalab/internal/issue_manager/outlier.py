@@ -73,13 +73,11 @@ class OutlierIssueManager(IssueManager):
         ood_kwargs = kwargs.get("ood_kwargs", {})
 
         valid_ood_params = OutOfDistribution.DEFAULT_PARAM_DICT.keys()
-        params = {
+        if params := {
             key: value
             for key, value in ((k, kwargs.get(k, None)) for k in valid_ood_params)
             if value is not None
-        }
-
-        if params:
+        }:
             ood_kwargs["params"] = params
 
         self.ood: OutOfDistribution = OutOfDistribution(**ood_kwargs)
@@ -108,13 +106,13 @@ class OutlierIssueManager(IssueManager):
             scores = self._score_with_features(features, **kwargs)
         elif pred_probs is not None:
             scores = self._score_with_pred_probs(pred_probs, **kwargs)
-        else:
-            if kwargs.get("knn_graph", None) is not None:
-                raise ValueError(
-                    "knn_graph is provided, but not sufficiently large to compute the scores based on the provided hyperparameters."
-                )
-            raise ValueError(f"Either features pred_probs must be provided.")
+        elif kwargs.get("knn_graph", None) is None:
+            raise ValueError("Either features pred_probs must be provided.")
 
+        else:
+            raise ValueError(
+                "knn_graph is provided, but not sufficiently large to compute the scores based on the provided hyperparameters."
+            )
         if features is not None or knn_graph is not None:
             if knn_graph is None:
                 assert (
@@ -134,7 +132,7 @@ class OutlierIssueManager(IssueManager):
             # Threshold based on pred_probs, very small scores are outliers
             if self.threshold is None:
                 self.threshold = self.DEFAULT_THRESHOLDS["pred_probs"]
-            if not 0 <= self.threshold:
+            if self.threshold < 0:
                 raise ValueError(f"threshold must be non-negative, but got {self.threshold}.")
             is_issue_column = scores < self.threshold * np.median(scores)
 
@@ -187,10 +185,7 @@ class OutlierIssueManager(IssueManager):
         # Check if the weighted knn graph exists in info
         knn_graph = self.datalab.get_info("statistics").get("weighted_knn_graph", None)
 
-        k: int = 0  # Used to check if the knn graph needs to be recomputed, already set in the knn object
-        if knn_graph is not None:
-            k = knn_graph.nnz // knn_graph.shape[0]
-
+        k = knn_graph.nnz // knn_graph.shape[0] if knn_graph is not None else 0
         knn: NearestNeighbors = self.ood.params["knn"]  # type: ignore
         if kwargs.get("knn", None) is not None or knn.n_neighbors > k:  # type: ignore[union-attr]
             # If the pre-existing knn graph has fewer neighbors than the knn object,
@@ -225,16 +220,11 @@ class OutlierIssueManager(IssueManager):
             )
             if self.ood.params["knn"] is not None:
                 knn = self.ood.params["knn"]
-                feature_issues_dict.update({"metric": knn.metric})  # type: ignore[union-attr]
+                feature_issues_dict["metric"] = knn.metric
 
-        if self.ood.params["confident_thresholds"] is not None:
-            pass  #
         statistics_dict = self._build_statistics_dictionary(knn_graph=knn_graph)
         ood_params_dict = self.ood.params
-        knn_dict = {
-            **pred_probs_issues_dict,
-            **feature_issues_dict,
-        }
+        knn_dict = pred_probs_issues_dict | feature_issues_dict
         info_dict: Dict[str, Any] = {
             **issues_dict,
             **ood_params_dict,  # type: ignore[arg-type]
@@ -268,9 +258,9 @@ class OutlierIssueManager(IssueManager):
     def _score_with_pred_probs(self, pred_probs: np.ndarray, **kwargs) -> np.ndarray:
         # Remove "threshold" from kwargs if it exists
         kwargs.pop("threshold", None)
-        scores = self.ood.fit_score(pred_probs=pred_probs, labels=self.datalab.labels, **kwargs)
-        return scores
+        return self.ood.fit_score(
+            pred_probs=pred_probs, labels=self.datalab.labels, **kwargs
+        )
 
     def _score_with_features(self, features: npt.NDArray, **kwargs) -> npt.NDArray:
-        scores = self.ood.fit_score(features=features)
-        return scores
+        return self.ood.fit_score(features=features)

@@ -147,9 +147,8 @@ class Reporter:
         )
 
     def _get_issue_types(self, issue_summary: pd.DataFrame) -> List[str]:
-        issue_types = [
+        return [
             issue_type
             for issue_type in issue_summary["issue_type"].tolist()
             if issue_type not in DEFAULT_CLEANVISION_ISSUES
         ]
-        return issue_types

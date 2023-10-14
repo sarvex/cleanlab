@@ -184,7 +184,7 @@ def get_label_quality_multiannotator(
     else:
         raise ValueError("labels_multiannotator must be either a NumPy array or Pandas DataFrame.")
 
-    if return_weights == True and quality_method != "crowdlab":
+    if return_weights and quality_method != "crowdlab":
         raise ValueError(
             "Model and annotator weights are only applicable to the crowdlab quality method. "
             "Either set return_weights=False or quality_method='crowdlab'."
@@ -675,9 +675,6 @@ def get_active_learning_scores(
             quality_of_consensus_labeled = get_label_quality_scores(consensus_label, pred_probs)
             model_weight = 1
             annotator_weight = np.full(labels_multiannotator.shape[1], 1)
-            avg_annotator_weight = np.mean(annotator_weight)
-
-        # examples are annotated by multiple annotators
         else:
             optimal_temp = find_best_temp_scaler(labels_multiannotator, pred_probs)
             pred_probs = temp_scale_pred_probs(pred_probs, optimal_temp)
@@ -695,7 +692,7 @@ def get_active_learning_scores(
             ]
             model_weight = multiannotator_info["model_weight"]
             annotator_weight = multiannotator_info["annotator_weight"]
-            avg_annotator_weight = np.mean(annotator_weight)
+        avg_annotator_weight = np.mean(annotator_weight)
 
         # compute scores for labeled data
         active_learning_scores = np.full(len(labels_multiannotator), np.nan)
@@ -708,7 +705,6 @@ def get_active_learning_scores(
                 ),
             )
 
-    # no labeled data provided so do not estimate temperature and model/annotator weights
     elif pred_probs_unlabeled is not None:
         num_classes = get_num_classes(pred_probs=pred_probs_unlabeled)
         optimal_temp = 1
@@ -830,9 +826,6 @@ def get_active_learning_scores_ensemble(
             quality_of_consensus_labeled = get_label_quality_scores(consensus_label, avg_pred_probs)
             model_weight = np.full(len(pred_probs), 1)
             annotator_weight = np.full(labels_multiannotator.shape[1], 1)
-            avg_annotator_weight = np.mean(annotator_weight)
-
-        # examples are annotated by multiple annotators
         else:
             optimal_temp = np.full(len(pred_probs), np.NaN)
             for i, curr_pred_probs in enumerate(pred_probs):
@@ -853,7 +846,7 @@ def get_active_learning_scores_ensemble(
             ]
             model_weight = multiannotator_info["model_weight"]
             annotator_weight = multiannotator_info["annotator_weight"]
-            avg_annotator_weight = np.mean(annotator_weight)
+        avg_annotator_weight = np.mean(annotator_weight)
 
         # compute scores for labeled data
         active_learning_scores = np.full(len(labels_multiannotator), np.nan)
@@ -866,7 +859,6 @@ def get_active_learning_scores_ensemble(
                 ),
             )
 
-    # no labeled data provided so do not estimate temperature and model/annotator weights
     elif pred_probs_unlabeled is not None:
         num_classes = get_num_classes(pred_probs=pred_probs_unlabeled[0])
         optimal_temp = np.full(len(pred_probs_unlabeled), 1.0)
@@ -990,7 +982,7 @@ def get_majority_vote_label(
             tied_idx[idx] = label_mode
 
     # tiebreak 1: using pred_probs (if provided)
-    if pred_probs is not None and len(tied_idx) > 0:
+    if pred_probs is not None and tied_idx:
         for idx, label_mode in tied_idx.copy().items():
             max_pred_probs = np.where(
                 pred_probs[idx, label_mode] == np.max(pred_probs[idx, label_mode])
@@ -1003,7 +995,7 @@ def get_majority_vote_label(
 
     # tiebreak 2: using empirical class frequencies
     # current tiebreak will select the minority class (to prevent larger class imbalance)
-    if len(tied_idx) > 0:
+    if tied_idx:
         class_frequencies = label_count.sum(axis=0)
         for idx, label_mode in tied_idx.copy().items():
             min_frequency = np.where(
@@ -1016,7 +1008,7 @@ def get_majority_vote_label(
                 tied_idx[idx] = label_mode[min_frequency]
 
     # tiebreak 3: using initial annotator quality scores
-    if len(tied_idx) > 0:
+    if tied_idx:
         nontied_majority_vote_label = majority_vote_label[nontied_idx]
         nontied_labels_multiannotator = labels_multiannotator[nontied_idx]
         annotator_agreement_with_consensus = np.zeros(nontied_labels_multiannotator.shape[1])
@@ -1054,7 +1046,7 @@ def get_majority_vote_label(
                 tied_idx[idx] = label_mode[max_score]
 
     # if still tied, break by random selection
-    if len(tied_idx) > 0:
+    if tied_idx:
         warnings.warn(
             f"breaking ties of examples {list(tied_idx.keys())} by random selection, you may want to set seed for reproducability"
         )
@@ -1395,14 +1387,13 @@ def _get_single_annotator_agreement(
             ) / (examples_num_annotators - 1)
 
     adjusted_num_annotations = num_annotations - 1
-    if np.sum(adjusted_num_annotations) == 0:
-        annotator_agreement = np.NaN
-    else:
-        annotator_agreement = np.average(
+    return (
+        np.NaN
+        if np.sum(adjusted_num_annotations) == 0
+        else np.average(
             annotator_agreement_per_example, weights=num_annotations - 1
         )
-
-    return annotator_agreement
+    )
 
 
 def _get_post_pred_probs_and_weights(
@@ -1451,11 +1442,6 @@ def _get_post_pred_probs_and_weights(
         None if annotator weights are not used to compute quality scores
 
     """
-    valid_methods = [
-        "crowdlab",
-        "agreement",
-    ]
-
     # setting dummy variables for model and annotator weights that will be returned
     # only relevant for quality_method == crowdlab, return None for all other methods
     return_model_weight = None
@@ -1531,6 +1517,11 @@ def _get_post_pred_probs_and_weights(
         post_pred_probs = label_counts / num_annotations.reshape(-1, 1)
 
     else:
+        valid_methods = [
+            "crowdlab",
+            "agreement",
+        ]
+
         raise ValueError(
             f"""
             {quality_method} is not a valid quality method!
@@ -1688,20 +1679,20 @@ def _get_consensus_quality_score(
         An array of shape ``(N,)`` with the quality score of the consensus.
     """
 
-    valid_methods = [
-        "crowdlab",
-        "agreement",
-    ]
+    if quality_method == "agreement":
+        consensus_quality_score = annotator_agreement
 
-    if quality_method == "crowdlab":
+    elif quality_method == "crowdlab":
         consensus_quality_score = get_label_quality_scores(
             consensus_label, pred_probs, **label_quality_score_kwargs
         )
 
-    elif quality_method == "agreement":
-        consensus_quality_score = annotator_agreement
-
     else:
+        valid_methods = [
+            "crowdlab",
+            "agreement",
+        ]
+
         raise ValueError(
             f"""
             {quality_method} is not a valid consensus quality method!
@@ -1780,12 +1771,24 @@ def _get_annotator_quality(
         Quality scores of a given annotator's labels
     """
 
-    valid_methods = [
-        "crowdlab",
-        "agreement",
-    ]
+    if quality_method == "agreement":
+        mask = num_annotations != 1
+        labels_multiannotator_subset = labels_multiannotator[mask]
+        consensus_label_subset = consensus_label[mask]
 
-    if quality_method == "crowdlab":
+        annotator_quality = np.zeros(labels_multiannotator_subset.shape[1])
+        for i in range(len(annotator_quality)):
+            labels = labels_multiannotator_subset[:, i]
+            labels_mask = ~np.isnan(labels)
+            # case where annotator does not annotate any examples with any other annotators
+            annotator_quality[i] = (
+                np.NaN
+                if np.sum(labels_mask) == 0
+                else np.mean(
+                    labels[labels_mask] == consensus_label_subset[labels_mask],
+                )
+            )
+    elif quality_method == "crowdlab":
         if detailed_label_quality is None:
             annotator_lqs = np.zeros(labels_multiannotator.shape[1])
             for i in range(len(annotator_lqs)):
@@ -1810,37 +1813,25 @@ def _get_annotator_quality(
             labels_mask = ~np.isnan(labels)
             # case where annotator does not annotate any examples with any other annotators
             # TODO: do we want to impute the mean or just return np.nan
-            if np.sum(labels_mask) == 0:
-                annotator_agreement[i] = np.NaN
-            else:
-                annotator_agreement[i] = np.mean(
+            annotator_agreement[i] = (
+                np.NaN
+                if np.sum(labels_mask) == 0
+                else np.mean(
                     labels[labels_mask] == consensus_label_subset[labels_mask],
                 )
-
+            )
         avg_num_annotations_frac = np.mean(num_annotations) / len(annotator_weight)
         annotator_weight_adjusted = np.sum(annotator_weight) * avg_num_annotations_frac
 
         w = model_weight / (model_weight + annotator_weight_adjusted)
         annotator_quality = w * annotator_lqs + (1 - w) * annotator_agreement
 
-    elif quality_method == "agreement":
-        mask = num_annotations != 1
-        labels_multiannotator_subset = labels_multiannotator[mask]
-        consensus_label_subset = consensus_label[mask]
-
-        annotator_quality = np.zeros(labels_multiannotator_subset.shape[1])
-        for i in range(len(annotator_quality)):
-            labels = labels_multiannotator_subset[:, i]
-            labels_mask = ~np.isnan(labels)
-            # case where annotator does not annotate any examples with any other annotators
-            if np.sum(labels_mask) == 0:
-                annotator_quality[i] = np.NaN
-            else:
-                annotator_quality[i] = np.mean(
-                    labels[labels_mask] == consensus_label_subset[labels_mask],
-                )
-
     else:
+        valid_methods = [
+            "crowdlab",
+            "agreement",
+        ]
+
         raise ValueError(
             f"""
             {quality_method} is not a valid annotator quality method!
@@ -1875,15 +1866,13 @@ def _get_annotator_worst_class(
         The class that is most frequently mislabeled by a given annotator.
     """
 
-    worst_class = np.apply_along_axis(
+    return np.apply_along_axis(
         _get_single_annotator_worst_class,
         axis=0,
         arr=labels_multiannotator,
         consensus_label=consensus_label,
         consensus_quality_score=consensus_quality_score,
     ).astype(int)
-
-    return worst_class
 
 
 def _get_single_annotator_worst_class(

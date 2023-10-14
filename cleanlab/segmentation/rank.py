@@ -191,12 +191,10 @@ def issues_from_scores(
         raise ValueError("threshold must be between 0 and 1")
 
     if pixel_scores is not None:
-        issues = np.where(pixel_scores < threshold, True, False)
-    else:
-        ranking = np.argsort(image_scores)
-        cutoff = np.searchsorted(image_scores[ranking], threshold)
-        issues = ranking[: cutoff + 1]
-    return issues
+        return np.where(pixel_scores < threshold, True, False)
+    ranking = np.argsort(image_scores)
+    cutoff = np.searchsorted(image_scores[ranking], threshold)
+    return ranking[: cutoff + 1]
 
 
 def _get_label_quality_per_image(pixel_scores, method=None, temperature=0.1):

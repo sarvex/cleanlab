@@ -270,9 +270,7 @@ class TestMultilabelScorer:
     def default_scorer(self):
         return ml_scorer.MultilabelScorer()
 
-    @pytest.mark.parametrize(
-        "base_scorer", [scorer for scorer in ml_scorer.ClassLabelScorer], ids=lambda x: x.name
-    )
+    @pytest.mark.parametrize("base_scorer", list(ml_scorer.ClassLabelScorer), ids=lambda x: x.name)
     @pytest.mark.parametrize(
         "aggregator", [np.min, np.max, np.mean, "exponential_moving_average", "softmin"]
     )
@@ -296,9 +294,7 @@ class TestMultilabelScorer:
                 scorer(labels, pred_probs, base_scorer_kwargs=base_scorer_kwargs)
                 assert "adjust_pred_probs is not currently supported for" in str(e)
 
-    @pytest.mark.parametrize(
-        "base_scorer", [scorer for scorer in ml_scorer.ClassLabelScorer], ids=lambda x: x.name
-    )
+    @pytest.mark.parametrize("base_scorer", list(ml_scorer.ClassLabelScorer), ids=lambda x: x.name)
     def test_aggregate_kwargs(self, base_scorer):
         """Make sure the instatiated aggregator kwargs can be overridden.
         I.e. switching from a forgetting-factor 1.0 to 0.5.
@@ -579,27 +575,18 @@ def test_get_label_quality_scores_output(labels, pred_probs, scorer):
     assert np.all(np.isfinite(scores))
 
 
-@pytest.mark.parametrize(
-    "given_labels,expected",
-    [
-        (
+@pytest.mark.parametrize("given_labels,expected", [(
             pytest.lazy_fixture("labels"),
             np.full((3, 2), 0.5),
-        ),
-        (np.array([[0, 1], [0, 0], [1, 1]]), np.array([[2 / 3, 1 / 3], [1 / 3, 2 / 3]])),
-        (np.array([[0, 1], [0, 0], [0, 1], [0, 1]]), np.array([[4 / 4, 0 / 4], [1 / 4, 3 / 4]])),
-        (
+        ), (np.array([[0, 1], [0, 0], [1, 1]]), np.array([[2 / 3, 1 / 3], [1 / 3, 2 / 3]])), (np.array([[0, 1], [0, 0], [0, 1], [0, 1]]), np.array([[1, 0 / 4], [1 / 4, 3 / 4]])), (
             np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0]]),
             np.array([[1, 0] if i != 1 else [0, 1] for i in range(9)]),
-        ),
-    ],
-    ids=[
+        )], ids=[
         "default",
         "Missing class assignment configuration",
         "Missing class",
         "Handle more than 8 classes",
-    ],
-)
+    ])
 def test_multilabel_py(given_labels, expected):
     py = ml_scorer.multilabel_py(given_labels)
     assert isinstance(py, np.ndarray)

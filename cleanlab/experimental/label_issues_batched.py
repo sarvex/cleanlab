@@ -404,12 +404,11 @@ class LabelInspector:
             raise ValueError(
                 "Have not computed any confident_thresholds yet. Call `update_confident_thresholds()` first."
             )
-        else:
-            if self.verbose and not silent:
-                print(
-                    f"Total number of examples used to estimate confident thresholds: {self.examples_processed_thresh}"
-                )
-            return self.confident_thresholds
+        if self.verbose and not silent:
+            print(
+                f"Total number of examples used to estimate confident thresholds: {self.examples_processed_thresh}"
+            )
+        return self.confident_thresholds
 
     def get_num_issues(self, silent: bool = False) -> int:
         """
@@ -428,20 +427,18 @@ class LabelInspector:
             raise ValueError(
                 "Have not evaluated any labels yet. Call `score_label_quality()` first."
             )
-        else:
-            if self.verbose and not silent:
-                print(
-                    f"Total number of examples whose labels have been evaluated: {self.examples_processed_quality}"
-                )
-            if self.off_diagonal_calibrated:
-                calibrated_prune_counts = (
-                    self.prune_counts
-                    * self.class_counts
-                    / np.clip(self.normalization, a_min=CLIPPING_LOWER_BOUND, a_max=None)
-                )  # avoid division by 0
-                return np.rint(np.sum(calibrated_prune_counts)).astype("int")
-            else:  # not calibrated
-                return self.prune_count
+        if self.verbose and not silent:
+            print(
+                f"Total number of examples whose labels have been evaluated: {self.examples_processed_quality}"
+            )
+        if not self.off_diagonal_calibrated:
+            return self.prune_count
+        calibrated_prune_counts = (
+            self.prune_counts
+            * self.class_counts
+            / np.clip(self.normalization, a_min=CLIPPING_LOWER_BOUND, a_max=None)
+        )  # avoid division by 0
+        return np.rint(np.sum(calibrated_prune_counts)).astype("int")
 
     def get_quality_scores(self) -> np.ndarray:
         """
@@ -651,10 +648,7 @@ class LabelInspector:
 
             # good values for this are ~1000-10000 in benchmarks where pred_probs has 1B entries:
             processes = 5000
-            if len(labels) <= processes:
-                chunksize = 1
-            else:
-                chunksize = len(labels) // processes
+            chunksize = 1 if len(labels) <= processes else len(labels) // processes
             inds = split_arr(np.arange(len(labels)), chunksize)
 
             if thorough:
@@ -694,23 +688,24 @@ def _compute_num_issues(arg: Tuple[np.ndarray, bool]) -> int:
     pred_prob = pred_probs_shared[ind, :]
     pred_class = np.argmax(pred_prob, axis=-1)
     batch_size = len(label)
-    if thorough:
-        pred_gt_thresholds = pred_prob >= adj_confident_thresholds_shared
-        max_ind = np.argmax(pred_prob * pred_gt_thresholds, axis=-1)
-        prune_count_batch = np.sum(
-            (pred_prob[np.arange(batch_size), max_ind] >= adj_confident_thresholds_shared[max_ind])
-            & (max_ind != label)
-            & (pred_class != label)
-        )
-    else:
-        prune_count_batch = np.sum(
+    if not thorough:
+        return np.sum(
             (
                 pred_prob[np.arange(batch_size), pred_class]
                 >= adj_confident_thresholds_shared[pred_class]
             )
             & (pred_class != label)
         )
-    return prune_count_batch
+    pred_gt_thresholds = pred_prob >= adj_confident_thresholds_shared
+    max_ind = np.argmax(pred_prob * pred_gt_thresholds, axis=-1)
+    return np.sum(
+        (
+            pred_prob[np.arange(batch_size), max_ind]
+            >= adj_confident_thresholds_shared[max_ind]
+        )
+        & (max_ind != label)
+        & (pred_class != label)
+    )
 
 
 def _compute_num_issues_calibrated(arg: Tuple[np.ndarray, bool]) -> Tuple[Any, int, int]:
@@ -732,15 +727,14 @@ def _compute_num_issues_calibrated(arg: Tuple[np.ndarray, bool]) -> Tuple[Any, i
         )
 
         prune_count_batch = to_inc & (max_ind != label)
-        normalization_batch = to_inc
     else:
         to_inc = (
             pred_prob[np.arange(batch_size), pred_class]
             >= adj_confident_thresholds_shared[pred_class]
         )
-        normalization_batch = to_inc
         prune_count_batch = to_inc & (pred_class != label)
 
+    normalization_batch = to_inc
     return (label, normalization_batch, prune_count_batch)
 
 

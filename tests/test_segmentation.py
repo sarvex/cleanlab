@@ -77,11 +77,9 @@ def generate_three_image_dataset(bad_index):
     for case in val:
         if case == "0":
             labels.append(good_gt)
-            pred.append(good_pr)
         else:
             labels.append(bad_gt)
-            pred.append(good_pr)
-
+        pred.append(good_pr)
     labels = np.array(labels)
     pred_probs = np.array(pred)
     return labels, pred_probs, error
@@ -440,7 +438,7 @@ def test_get_valid_functions():
     x, y = _get_valid_optional_params(optional_batch_size, optional_n_jobs)
     assert x == optional_batch_size and y == optional_n_jobs
     x, y = _get_valid_optional_params(None, None)
-    assert x == 10000 and y == None
+    assert x == 10000 and y is None
 
     optional_class_names = [1, 2]
     optional_exclude = [1]
@@ -448,4 +446,4 @@ def test_get_valid_functions():
     x, y, z = _get_summary_optional_params(optional_class_names, optional_exclude, optional_top)
     assert x == optional_class_names and y == optional_exclude and z == optional_top
     x, y, z = _get_summary_optional_params(None, None, None)
-    assert x == None and y == [] and z == 20
+    assert x is None and y == [] and z == 20

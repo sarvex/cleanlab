@@ -12,14 +12,12 @@ class TestImagelabAdapater:
 
     def test_imagelab_default_issue_types(self):
         default_issues = DEFAULT_CLEANVISION_ISSUES
-        assert set(default_issues) == set(
-            [
-                "dark",
-                "light",
-                "low_information",
-                "odd_aspect_ratio",
-                "odd_size",
-                "grayscale",
-                "blurry",
-            ]
-        )
+        assert set(default_issues) == {
+            "dark",
+            "light",
+            "low_information",
+            "odd_aspect_ratio",
+            "odd_size",
+            "grayscale",
+            "blurry",
+        }

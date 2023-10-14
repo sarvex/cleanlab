@@ -285,8 +285,9 @@ class OutOfDistribution:
     def _assert_valid_params(params, param_keys):
         """Validate passed in params and get list of parameters in param that are not in param_keys."""
         if params is not None:
-            wrong_params = list(set(params.keys()).difference(set(param_keys)))
-            if len(wrong_params) > 0:
+            if wrong_params := list(
+                set(params.keys()).difference(set(param_keys))
+            ):
                 raise ValueError(
                     f"Passed in params dict can only contain {param_keys}. Remove {wrong_params} from params dict."
                 )
@@ -404,7 +405,6 @@ def _get_ood_features_scores(
     ood_features_scores : Tuple[np.ndarray, Optional[NearestNeighbors]]
       Return a tuple whose first element is array of `ood_features_scores` and second is a `knn` Estimator object.
     """
-    DEFAULT_K = 10
     # fit skip over (if knn is not None) then skipping fit and suggest score else fit.
     if knn is None:  # setup default KNN estimator
         # Make sure both knn and features are not None
@@ -413,17 +413,14 @@ def _get_ood_features_scores(
                 "Both knn and features arguments cannot be None at the same time. Not enough information to compute outlier scores."
             )
         if k is None:
+            DEFAULT_K = 10
             k = DEFAULT_K  # use default when knn and k are both None
         if k > len(features):  # Ensure number of neighbors less than number of examples
             raise ValueError(
                 f"Number of nearest neighbors k={k} cannot exceed the number of examples N={len(features)} passed into the estimator (knn)."
             )
 
-        if features.shape[1] > 3:  # use euclidean distance for lower dimensional spaces
-            metric = "cosine"
-        else:
-            metric = "euclidean"
-
+        metric = "cosine" if features.shape[1] > 3 else "euclidean"
         knn = NearestNeighbors(n_neighbors=k, metric=metric).fit(features)
         features = None  # features should be None in knn.kneighbors(features) to avoid counting duplicate data points
 
@@ -498,12 +495,6 @@ def _get_ood_predictions_scores(
     ood_predictions_scores : Tuple[np.ndarray, Optional[np.ndarray]]
       Returns a tuple. First element is array of `ood_predictions_scores` and second is an np.ndarray of `confident_thresholds` or None is 'confident_thresholds' is not calculated.
     """
-    valid_methods = (
-        "entropy",
-        "least_confidence",
-        "gen",
-    )
-
     if (confident_thresholds is not None or labels is not None) and not adjust_pred_probs:
         warnings.warn(
             "OOD scores are not adjusted with confident thresholds. If scores need to be adjusted set "
@@ -530,8 +521,6 @@ def _get_ood_predictions_scores(
     # Scores are flipped so ood scores are closer to 0. Scores reflect confidence example is in-distribution.
     if method == "entropy":
         ood_predictions_scores = 1.0 - get_normalized_entropy(pred_probs)
-    elif method == "least_confidence":
-        ood_predictions_scores = pred_probs.max(axis=1)
     elif method == "gen":
         if pred_probs.shape[1] < M:  # pragma: no cover
             warnings.warn(
@@ -543,7 +532,15 @@ def _get_ood_predictions_scores(
         ood_predictions_scores = (
             1 - np.sum(probs_sorted**gamma * (1 - probs_sorted) ** (gamma), axis=1) / M
         )  # Use 1 + original gen score/M to make the scores lie in 0-1
+    elif method == "least_confidence":
+        ood_predictions_scores = pred_probs.max(axis=1)
     else:
+        valid_methods = (
+            "entropy",
+            "least_confidence",
+            "gen",
+        )
+
         raise ValueError(
             f"""
             {method} is not a valid OOD scoring method!

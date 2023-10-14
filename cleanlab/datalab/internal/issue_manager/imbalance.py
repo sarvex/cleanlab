@@ -77,5 +77,4 @@ class ClassImbalanceIssueManager(IssueManager):
 
     def collect_info(self) -> dict:
         params_dict = {"threshold": self.threshold}
-        info_dict = {**params_dict}
-        return info_dict
+        return {**params_dict}

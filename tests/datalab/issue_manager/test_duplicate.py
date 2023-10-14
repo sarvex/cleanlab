@@ -19,7 +19,7 @@ def embeddings_strategy(draw):
     element_strategy = st.floats(
         min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
     )
-    embeddings = draw(
+    return draw(
         arrays(
             dtype=np.float64,
             shape=shape_strategy,
@@ -27,7 +27,6 @@ def embeddings_strategy(draw):
             unique=True,
         )
     )
-    return embeddings
 
 
 class TestNearDuplicateIssueManager:

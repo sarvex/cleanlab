@@ -95,7 +95,7 @@ def find_label_issues(
     pred_probs_flatten = np.array([pred for pred_prob in pred_probs for pred in pred_prob])
 
     if low_memory:
-        for arg_name, _ in kwargs.items():
+        for arg_name in kwargs:
             warnings.warn(f"`{arg_name}` is not used when `low_memory=True`.")
         quality_score_kwargs = {"method": return_indices_ranked_by}
         issues_main = find_label_issues_batched(
@@ -113,5 +113,4 @@ def find_label_issues(
     mapping = [[(i, j) for j in range(length)] for i, length in enumerate(lengths)]
     mapping_flatten = [index for indicies in mapping for index in indicies]
 
-    issues = [mapping_flatten[issue] for issue in issues_main]
-    return issues
+    return [mapping_flatten[issue] for issue in issues_main]

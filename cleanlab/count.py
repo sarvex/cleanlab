@@ -121,7 +121,6 @@ def num_label_issues(
     num_issues :
       The estimated number of examples with label issues in the dataset.
     """
-    valid_methods = ["off_diagonal", "off_diagonal_calibrated", "off_diagonal_custom"]
     if isinstance(confident_joint, np.ndarray) and estimation_method != "off_diagonal_custom":
         warn_str = (
             "The supplied `confident_joint` is ignored as `confident_joint` is recomuputed internally using "
@@ -166,7 +165,11 @@ def num_label_issues(
         frac_issues = 1.0 - joint.trace()
         num_issues = np.rint(frac_issues * len(labels)).astype(int)
     elif estimation_method == "off_diagonal_custom":
-        if not isinstance(confident_joint, np.ndarray):
+        if isinstance(confident_joint, np.ndarray):
+            joint = estimate_joint(labels, pred_probs, confident_joint=confident_joint)
+            frac_issues = 1.0 - joint.trace()
+            num_issues = np.rint(frac_issues * len(labels)).astype(int)
+        else:
             raise ValueError(
                 f"""
                 No `confident_joint` provided. For 'estimation_method' = {estimation_method} you need to provide pre-calculated
@@ -174,11 +177,8 @@ def num_label_issues(
                 be calculated for you.
                 """
             )
-        else:
-            joint = estimate_joint(labels, pred_probs, confident_joint=confident_joint)
-            frac_issues = 1.0 - joint.trace()
-            num_issues = np.rint(frac_issues * len(labels)).astype(int)
     else:
+        valid_methods = ["off_diagonal", "off_diagonal_calibrated", "off_diagonal_custom"]
         raise ValueError(
             f"""
                 {estimation_method} is not a valid estimation method!
@@ -385,24 +385,22 @@ def estimate_joint(
             calibrate=True,
             multi_label=multi_label,
         )
-    else:
-        if labels is not None:
-            calibrated_cj = calibrate_confident_joint(
-                confident_joint, labels, multi_label=multi_label
-            )
-        else:
-            calibrated_cj = confident_joint
+    elif labels is None:
+        calibrated_cj = confident_joint
 
-    assert isinstance(calibrated_cj, np.ndarray)
-    if multi_label:
-        if not isinstance(labels, list):
-            raise TypeError("`labels` must be list when `multi_label=True`.")
-        else:
-            return _estimate_joint_multilabel(
-                labels=labels, pred_probs=pred_probs, confident_joint=confident_joint
-            )
     else:
+        calibrated_cj = calibrate_confident_joint(
+            confident_joint, labels, multi_label=multi_label
+        )
+    assert isinstance(calibrated_cj, np.ndarray)
+    if not multi_label:
         return calibrated_cj / np.clip(float(np.sum(calibrated_cj)), a_min=TINY_VALUE, a_max=None)
+    if not isinstance(labels, list):
+        raise TypeError("`labels` must be list when `multi_label=True`.")
+    else:
+        return _estimate_joint_multilabel(
+            labels=labels, pred_probs=pred_probs, confident_joint=confident_joint
+        )
 
 
 def _estimate_joint_multilabel(
@@ -1391,8 +1389,8 @@ def _converge_estimates(
         Three arrays of the form (`py`, `noise_matrix`, `inverse_noise_matrix`) all
         having numerical agreement in terms of their mathematical relations."""
 
-    for j in range(noise_matrix_iterations):
-        for i in range(inv_noise_matrix_iterations):
+    for _ in range(noise_matrix_iterations):
+        for _ in range(inv_noise_matrix_iterations):
             inverse_noise_matrix = compute_inv_noise_matrix(py=py, noise_matrix=noise_matrix, ps=ps)
             py = compute_py(ps, noise_matrix, inverse_noise_matrix)
         noise_matrix = compute_noise_matrix_from_inverse(

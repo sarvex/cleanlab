@@ -45,8 +45,7 @@ def _labels_to_binary(
         X=None, y=labels, pred_probs=pred_probs, multi_label=True, allow_one_class=True
     )
     num_classes = get_num_classes(labels=labels, pred_probs=pred_probs, multi_label=True)
-    binary_labels = int2onehot(labels, K=num_classes)
-    return binary_labels
+    return int2onehot(labels, K=num_classes)
 
 
 def _create_multilabel_scorer(

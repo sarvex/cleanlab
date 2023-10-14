@@ -630,7 +630,7 @@ class TestDatalabIssueManagerInteraction:
         lab.find_issues(issue_types={"custom_issue": {}})
 
         expected_is_custom_issue_issue = [False, True] + [False] * 3
-        expected_custom_issue_score = [1 / 1, 0 / 2, 1 / 3, 2 / 4, 3 / 5]
+        expected_custom_issue_score = [1, 0 / 2, 1 / 3, 2 / 4, 3 / 5]
         expected_issues = pd.DataFrame(
             {
                 "is_custom_issue_issue": expected_is_custom_issue_issue,
@@ -654,7 +654,7 @@ class TestDatalabIssueManagerInteraction:
         lab.find_issues(issue_types={"custom_issue": {"custom_argument": 3}})
 
         expected_is_custom_issue_issue = [False, False, False, True, False]
-        expected_custom_issue_score = [3 / 3, 2 / 4, 1 / 5, 0 / 6, 1 / 7]
+        expected_custom_issue_score = [1, 2 / 4, 1 / 5, 0 / 6, 1 / 7]
         expected_issues = pd.DataFrame(
             {
                 "is_custom_issue_issue": expected_is_custom_issue_issue,
@@ -911,7 +911,7 @@ class TestDatalabFindNearDuplicateIssues:
     def fixed_embeddings(self):
         near_duplicate_scale = 0.0001
         non_duplicate_scale = 100
-        X = np.array(
+        return np.array(
             [[0, 0]] * 4  # Points with 3 exact duplicates
             + [[1, 1]] * 2  # Points with 1 exact duplicate
             + [[1, 0]] * 3
@@ -920,14 +920,17 @@ class TestDatalabFindNearDuplicateIssues:
                 [1, 0 + near_duplicate_scale]
             ]  # Points with 2 exact duplicates and 2 near duplicates
             + [
-                [-1, -1] + np.random.rand(2) * near_duplicate_scale for _ in range(5)
+                [-1, -1] + np.random.rand(2) * near_duplicate_scale
+                for _ in range(5)
             ]  # Points with 5 near duplicates
             + [
-                [-1, 0] + np.random.rand(2) * near_duplicate_scale for _ in range(2)
+                [-1, 0] + np.random.rand(2) * near_duplicate_scale
+                for _ in range(2)
             ]  # Points with 1 near duplicate
-            + (np.random.rand(20, 2) * non_duplicate_scale).tolist()  # Random points
+            + (
+                np.random.rand(20, 2) * non_duplicate_scale
+            ).tolist()  # Random points
         )
-        return X
 
     @pytest.fixture
     def pred_probs(self):
@@ -1003,7 +1006,7 @@ class TestDatalabFindNearDuplicateIssues:
         assert all(equal_sets)
 
         # Assert self-idx is not included in near duplicate sets
-        assert all([i not in s for i, s in enumerate(near_duplicate_sets)])
+        assert all(i not in s for i, s in enumerate(near_duplicate_sets))
 
         # Assert near duplicate sets are unique, ignoring empty sets
         unique_non_empty_sets = [tuple(s) for s in near_duplicate_sets if len(s) > 0]

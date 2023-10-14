@@ -640,7 +640,7 @@ def append_extra_datapoint(to_data, from_data, index) -> DatasetLike:
     This datapoint is taken from the data object ``from_data`` at the corresponding index.
     One place this could be useful is ensuring no missing classes after train/validation split.
     """
-    if not (type(from_data) is type(to_data)):
+    if type(from_data) is not type(to_data):
         raise ValueError("Cannot append datapoint from different type of data object.")
 
     if isinstance(to_data, np.ndarray):
@@ -699,10 +699,7 @@ def get_unique_classes(labels, multi_label=None) -> set:
     like this: [1, [1,2], [0], [0, 1], 2, 1]"""
     if multi_label is None:
         multi_label = any(isinstance(l, list) for l in labels)
-    if multi_label:
-        return set(l for grp in labels for l in list(grp))
-    else:
-        return set(labels)
+    return {l for grp in labels for l in list(grp)} if multi_label else set(labels)
 
 
 def format_labels(labels: LabelLike) -> Tuple[np.ndarray, dict]:

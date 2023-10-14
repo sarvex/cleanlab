@@ -112,15 +112,13 @@ def find_label_issues(
         method=scoring_method,
     )
 
-    is_issue = _find_label_issues(
+    return _find_label_issues(
         labels,
         predictions,
         scoring_method=scoring_method,
         return_indices_ranked_by_score=return_indices_ranked_by_score,
         overlapping_label_check=overlapping_label_check,
     )
-
-    return is_issue
 
 
 def _find_label_issues(
@@ -184,15 +182,13 @@ def _find_label_issues(
             fill_value=-1,
         )
 
-    if return_indices_ranked_by_score:
-        scores = get_label_quality_scores(labels, predictions)
-        sorted_scores_idx = issues_from_scores(scores, threshold=1.0)
-        is_issue_idx = np.where(is_issue == True)[0]
-        sorted_issue_mask = np.in1d(sorted_scores_idx, is_issue_idx, assume_unique=True)
-        issue_idx = sorted_scores_idx[sorted_issue_mask]
-        return issue_idx
-    else:
+    if not return_indices_ranked_by_score:
         return is_issue
+    scores = get_label_quality_scores(labels, predictions)
+    sorted_scores_idx = issues_from_scores(scores, threshold=1.0)
+    is_issue_idx = np.where(is_issue == True)[0]
+    sorted_issue_mask = np.in1d(sorted_scores_idx, is_issue_idx, assume_unique=True)
+    return sorted_scores_idx[sorted_issue_mask]
 
 
 def _find_label_issues_per_box(
@@ -210,11 +206,11 @@ def _find_label_issues_per_box(
         else:
             score_per_box[np.isnan(score_per_box)] = 1.0
             score_per_box = score_per_box
-            issue_per_box = []
-            for i in range(len(score_per_box)):
-                issue_per_box.append(
-                    score_per_box[i] <= threshold_classes[idx][i] * threshold_factor
-                )
+            issue_per_box = [
+                score_per_box[i]
+                <= threshold_classes[idx][i] * threshold_factor
+                for i in range(len(score_per_box))
+            ]
             is_issue_per_box.append(np.array(issue_per_box, bool))
     return is_issue_per_box
 
@@ -293,7 +289,7 @@ def _calculate_ap_per_class(
             ]
         true_positives, false_positives = tuple(zip(*tpfp))
         num_gts = np.zeros(num_scale, dtype=int)
-        for j, bbox in enumerate(lab_bboxes):
+        for bbox in lab_bboxes:
             num_gts[0] += bbox.shape[0]
         pred_bboxes = np.vstack(pred_bboxes)
         sort_inds = np.argsort(-pred_bboxes[:, -1])
@@ -400,7 +396,7 @@ def _get_per_class_ap(
         ap_per_class = _calculate_ap_per_class(labels, predictions, iou_threshold=threshold)
         for class_num in range(0, len(ap_per_class)):
             class_num_to_iou_list[class_num].append(ap_per_class[class_num])
-    class_num_to_AP = {}
-    for class_num in class_num_to_iou_list:
-        class_num_to_AP[class_num] = np.mean(class_num_to_iou_list[class_num]) * AP_SCALE_FACTOR
-    return class_num_to_AP
+    return {
+        class_num: np.mean(class_num_to_iou_list[class_num]) * AP_SCALE_FACTOR
+        for class_num in class_num_to_iou_list
+    }

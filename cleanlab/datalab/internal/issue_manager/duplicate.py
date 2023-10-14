@@ -189,13 +189,12 @@ class NearDuplicateIssueManager(IssueManager):
 
         statistics_dict = self._build_statistics_dictionary(knn_graph=knn_graph)
 
-        info_dict = {
+        return {
             **issues_dict,
             **params_dict,
             **knn_info_dict,
             **statistics_dict,
         }
-        return info_dict
 
     def _build_statistics_dictionary(self, knn_graph: csr_matrix) -> Dict[str, Dict[str, Any]]:
         statistics_dict: Dict[str, Dict[str, Any]] = {"statistics": {}}

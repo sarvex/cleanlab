@@ -39,13 +39,13 @@ SKLEARN_DIGITS_TRAIN_SIZE = 1247
 SKLEARN_DIGITS_TEST_SIZE = 550
 
 
-def get_mnist_dataset(loader):  # pragma: no cover
+def get_mnist_dataset(loader):    # pragma: no cover
     """Downloads MNIST as PyTorch dataset.
 
     Parameters
     ----------
     loader : str (values: 'train' or 'test')."""
-    dataset = datasets.MNIST(
+    return datasets.MNIST(
         root="../data",
         train=(loader == "train"),
         download=True,
@@ -53,7 +53,6 @@ def get_mnist_dataset(loader):  # pragma: no cover
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         ),
     )
-    return dataset
 
 
 def get_sklearn_digits_dataset(loader):
@@ -381,5 +380,4 @@ class CNN(BaseEstimator):  # Inherits sklearn classifier
         outputs = torch.cat(outputs, dim=0)
         # Convert to probabilities and return the numpy array of shape N x K
         out = outputs.cpu().numpy() if self.cuda else outputs.numpy()
-        pred = np.exp(out)
-        return pred
+        return np.exp(out)

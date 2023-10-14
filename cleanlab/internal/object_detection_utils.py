@@ -50,7 +50,7 @@ def assert_valid_aggregation_weights(aggregation_weights: Dict[str, Any]) -> Non
     weights = np.array(list(aggregation_weights.values()))
     if (not np.isclose(np.sum(weights), 1.0)) or (np.min(weights) < 0.0):
         raise ValueError(
-            f"""Aggregation weights should be non-negative and must sum to 1.0
+            """Aggregation weights should be non-negative and must sum to 1.0
                 """
         )
 
@@ -76,9 +76,9 @@ def assert_valid_inputs(
         raise ValueError(
             f"Prediction has to be a list or np.ndarray. Instead it is type {type(predictions[0])}."
         )
-    if not predictions[0][0].shape[1] == 5:
+    if predictions[0][0].shape[1] != 5:
         raise ValueError(
-            f"Prediction values have to be of format [x1,y1,x2,y2,pred_prob]. Please refer to the documentation for predicted probabilities under object_detection.rank.get_label_quality_scores for details"
+            "Prediction values have to be of format [x1,y1,x2,y2,pred_prob]. Please refer to the documentation for predicted probabilities under object_detection.rank.get_label_quality_scores for details"
         )
 
     valid_methods = ["objectlab"]
@@ -92,7 +92,7 @@ def assert_valid_inputs(
 
     if threshold is not None and threshold > 1.0:
         raise ValueError(
-            f"""
+            """
             Threshold is a cutoff of predicted probabilities and therefore should be <= 1.
             """
         )

@@ -61,8 +61,8 @@ def make_data(
         test_data.append(
             np.random.multivariate_normal(mean=means[idx], cov=covs[idx], size=sizes[idx])
         )
-        labels.append(np.array([idx for i in range(sizes[idx])]))
-        test_labels.append(np.array([idx for i in range(sizes[idx])]))
+        labels.append(np.array([idx for _ in range(sizes[idx])]))
+        test_labels.append(np.array([idx for _ in range(sizes[idx])]))
     X_train = np.vstack(data)
     true_labels_train = np.hstack(labels)
     X_test = np.vstack(test_data)
@@ -695,7 +695,7 @@ def dimN_data(N):
     X = np.random.normal(size=size)
     labels = np.random.randint(0, 4, size=100)
     # ensure that every class is represented
-    labels[0:10] = 0
+    labels[:10] = 0
     labels[11:20] = 1
     labels[21:30] = 2
     labels[31:40] = 3

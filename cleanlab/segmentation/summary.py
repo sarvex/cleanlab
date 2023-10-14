@@ -148,11 +148,7 @@ def display_issues(
             plot_index += 1
 
         # Third image - Errors
-        if output_plots == 1:
-            ax = axes
-        else:
-            ax = axes[plot_index]
-
+        ax = axes if output_plots == 1 else axes[plot_index]
         mask = np.full((h, w), True)
         if labels is not None and len(exclude) != 0:
             mask = ~np.isin(labels[i], exclude)
@@ -255,10 +251,11 @@ def common_label_issues(
     info = []
     for given_label, class_name in enumerate(class_names):
         if given_label in count:
-            for pred_label, num_issues in enumerate(count[given_label]):
-                if num_issues > 0:
-                    info.append([class_name, class_names[pred_label], num_issues])
-
+            info.extend(
+                [class_name, class_names[pred_label], num_issues]
+                for pred_label, num_issues in enumerate(count[given_label])
+                if num_issues > 0
+            )
     info = sorted(info, key=lambda x: x[2], reverse=True)[:top]
     issues_df = pd.DataFrame(info, columns=["given_label", "predicted_label", "num_pixel_issues"])
 
@@ -309,10 +306,9 @@ def filter_by_class(
 
 
     """
-    issues_subset = (issues & np.isin(labels, class_index)) | (
+    return (issues & np.isin(labels, class_index)) | (
         issues & np.isin(pred_probs.argmax(1), class_index)
     )
-    return issues_subset
 
 
 def _generate_colormap(num_colors):
@@ -359,5 +355,4 @@ def _generate_colormap(num_colors):
         / upper_partitions_half
     )
     initial_cm[upper_half_indices, :3] += modifier
-    colors = initial_cm[:num_colors]
-    return colors
+    return initial_cm[:num_colors]
